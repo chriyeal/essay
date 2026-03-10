@@ -1,6 +1,6 @@
 /**
  * v-dialogDragWidth 可拖动弹窗高度（右下角）
- * Copyright (c) 2019 ruoyi
+ * 学习计划管理系统
  */
 
 export default {

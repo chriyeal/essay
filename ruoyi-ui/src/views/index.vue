@@ -1,5 +1,4 @@
-  </div>
-</template>
+<template>
   <div class="app-container home">
     <!-- 欢迎横幅 -->
     <div class="welcome-banner">
@@ -54,7 +53,7 @@
     <!-- 功能特色 -->
     <div class="features-section">
       <h2 class="section-title">核心功能 / Core Features</h2>
-      <el-row :gutter="30">
+      <el-row :gutter="40" class="feature-row">
         <el-col :xs="24" :sm="12" :md="8" v-for="feature in features" :key="feature.title">
           <div class="feature-card">
             <div class="feature-icon" :style="{ color: feature.color }">
@@ -67,96 +66,8 @@
         </el-col>
       </el-row>
     </div>
-
-
-    <!-- 联系我们 -->
-    <div class="contact-section">
-      <h2 class="section-title">联系我们 / Contact Us</h2>
-      <el-row :gutter="30">
-        <el-col :xs="24" :sm="12" :md="8">
-          <div class="contact-card">
-            <div class="contact-icon">
-              <i class="el-icon-s-promotion"></i>
-            </div>
-            <h3>官方网站</h3>
-            <p>Official Website</p>
-            <a href="javascript:void(0);" target="_blank">https://studysystem.com</a>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :md="8">
-          <div class="contact-card">
-            <div class="contact-icon">
-              <i class="el-icon-chat-dot-round"></i>
-            </div>
-            <h3>客服支持</h3>
-            <p>Customer Support</p>
-            <a href="javascript:void(0);" target="_blank">support@studysystem.com</a>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :md="8">
-          <div class="contact-card">
-            <div class="contact-icon">
-              <i class="el-icon-service"></i>
-            </div>
-            <h3>技术支持</h3>
-            <p>Technical Support</p>
-            <a href="javascript:void(0);" target="_blank">tech@studysystem.com</a>
-          </div>
-        </el-col>
-      </el-row>
-    </div>
-    <!-- 系统信息 -->
-    <div class="system-info">
-      <el-row :gutter="30">
-        <el-col :xs="24" :sm="12" :md="8">
-          <div class="info-card">
-            <h3>系统版本</h3>
-            <p>System Version</p>
-            <div class="version-tag">v1.0.0</div>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :md="8">
-          <div class="info-card">
-            <h3>更新日志</h3>
-            <p>Update Log</p>
-            <ul class="update-list">
-              <li>个性化学习计划管理系统正式上线</li>
-              <li>支持学习计划制定与管理</li>
-              <li>集成番茄钟专注学习功能</li>
-              <li>提供学习数据可视化分析</li>
-            </ul>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12" :md="8">
-          <div class="info-card">
-            <h3>关于我们</h3>
-            <p>About Us</p>
-            <div class="about-content">
-              <p>致力于为用户提供高效、便捷的学习管理解决方案</p>
-              <p class="en-about">Dedicated to providing efficient and convenient learning management solutions</p>
-            </div>
-          </div>
-        </el-col>
-      </el-row>
-    </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  </div>
+</template>
 
 <script>
 import { getStudyStatistics } from '@/api/study/statistics'
@@ -456,14 +367,14 @@ export default {
   
   // 功能特色
   .features-section {
-    padding: 60px 40px;
+    padding: 80px 60px;
     background: #f8f9fa;
     
     .section-title {
       text-align: center;
       font-size: 2rem;
       font-weight: 300;
-      margin-bottom: 50px;
+      margin-bottom: 60px;
       color: #333;
       position: relative;
       
@@ -480,14 +391,20 @@ export default {
       }
     }
     
+    .feature-row {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    
     .feature-card {
       background: white;
-      border-radius: 16px;
-      padding: 40px 30px;
+      border-radius: 20px;
+      padding: 50px 35px;
       text-align: center;
       transition: all 0.3s ease;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
       height: 100%;
+      margin-bottom: 40px;
       
       &:hover {
         transform: translateY(-10px);
@@ -495,13 +412,13 @@ export default {
       }
       
       .feature-icon {
-        font-size: 3rem;
-        margin-bottom: 25px;
+        font-size: 3.5rem;
+        margin-bottom: 30px;
       }
       
       h3 {
-        font-size: 1.4rem;
-        margin-bottom: 15px;
+        font-size: 1.5rem;
+        margin-bottom: 20px;
         color: #333;
         font-weight: 500;
       }
@@ -509,8 +426,8 @@ export default {
       p {
         color: #666;
         font-size: 1rem;
-        line-height: 1.6;
-        margin-bottom: 10px;
+        line-height: 1.8;
+        margin-bottom: 12px;
       }
       
       .feature-desc-en {

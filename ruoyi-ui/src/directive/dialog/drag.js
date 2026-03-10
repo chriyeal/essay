@@ -1,6 +1,6 @@
 /**
 * v-dialogDrag 弹窗拖拽
-* Copyright (c) 2019 ruoyi
+* 学习计划管理系统
 */
 
 export default {

@@ -94,6 +94,9 @@ public class SysUser extends BaseEntity
     /** 角色ID */
     private Long roleId;
 
+    /** 个性签名 */
+    private String signature;
+
     public SysUser()
     {
 
@@ -306,6 +309,16 @@ public class SysUser extends BaseEntity
     public void setRoleId(Long roleId)
     {
         this.roleId = roleId;
+    }
+
+    public String getSignature()
+    {
+        return signature;
+    }
+
+    public void setSignature(String signature)
+    {
+        this.signature = signature;
     }
 
     @Override

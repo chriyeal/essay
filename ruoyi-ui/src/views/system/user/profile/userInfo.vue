@@ -15,6 +15,9 @@
         <el-radio label="1">女</el-radio>
       </el-radio-group>
     </el-form-item>
+    <el-form-item label="个性签名" prop="signature">
+      <el-input v-model="form.signature" maxlength="200" placeholder="请输入个性签名" type="textarea" :rows="2" />
+    </el-form-item>
     <el-form-item>
       <el-button type="primary" size="mini" @click="submit">保存</el-button>
       <el-button type="danger" size="mini" @click="close">关闭</el-button>
@@ -62,7 +65,7 @@ export default {
     user: {
       handler(user) {
         if (user) {
-          this.form = { nickName: user.nickName, phonenumber: user.phonenumber, email: user.email, sex: user.sex }
+          this.form = { nickName: user.nickName, phonenumber: user.phonenumber, email: user.email, sex: user.sex, signature: user.signature }
         }
       },
       immediate: true

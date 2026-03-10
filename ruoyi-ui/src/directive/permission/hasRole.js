@@ -1,6 +1,6 @@
  /**
  * v-hasRole 角色权限处理
- * Copyright (c) 2019 ruoyi
+ * 学习计划管理系统
  */
 
 import store from '@/store'

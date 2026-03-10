@@ -3,16 +3,19 @@
 -- ====================
 
 -- 删除原有的菜单结构
-DELETE FROM sys_menu WHERE menu_id <= 2000;
+DELETE FROM sys_menu WHERE menu_id <= 200000;
 
 -- 插入新的学习系统菜单结构
+-- 首页菜单
+INSERT INTO sys_menu VALUES('900', '首页', '0', '0', 'index', 'index', '', '', 1, 0, 'C', '0', '0', '', 'dashboard', 'admin', sysdate(), '', null, '首页');
+
 -- 一级菜单
 INSERT INTO sys_menu VALUES('1000', '学习计划', '0', '1', 'study-plan', 'study/plan/index', '', '', 1, 0, 'C', '0', '0', 'study:plan:list', 'education', 'admin', sysdate(), '', null, '学习计划菜单');
 INSERT INTO sys_menu VALUES('1001', '番茄钟', '0', '2', 'tomato-clock', 'study/tomato/index', '', '', 1, 0, 'C', '0', '0', 'study:tomato:list', 'clock', 'admin', sysdate(), '', null, '番茄钟菜单');
 INSERT INTO sys_menu VALUES('1002', '数据统计', '0', '3', 'statistics', 'study/statistics/index', '', '', 1, 0, 'C', '0', '0', 'study:statistics:list', 'chart', 'admin', sysdate(), '', null, '学习数据统计菜单');
 
 -- 二级菜单 - 用户管理（仅管理员可见）
-INSERT INTO sys_menu VALUES('1010', '用户管理', '0', '4', 'user-management', 'system/user/index', '', '', 1, 0, 'C', '0', '0', 'system:user:list', 'user', 'admin', sysdate(), '', null, '用户管理菜单');
+INSERT INTO sys_menu VALUES('1010', '用户管理', '0', '4', 'user-management', 'system/user/admin', '', '', 1, 0, 'C', '0', '0', 'system:user:list', 'user', 'admin', sysdate(), '', null, '用户管理菜单');
 
 -- 学习计划子菜单（按钮权限）
 INSERT INTO sys_menu VALUES('100001', '学习计划查询', '1000', '1', '', '', '', '', 1, 0, 'F', '0', '0', 'study:plan:query', '#', 'admin', sysdate(), '', null, '');
@@ -45,6 +48,7 @@ INSERT INTO sys_menu VALUES('101005', '重置密码', '1010', '5', '', '', '', '
 DELETE FROM sys_role_menu;
 
 -- 普通用户角色权限（角色ID=2）
+INSERT INTO sys_role_menu VALUES ('2', '900'); -- 首页
 INSERT INTO sys_role_menu VALUES ('2', '1000'); -- 学习计划
 INSERT INTO sys_role_menu VALUES ('2', '100001'); -- 学习计划查询
 INSERT INTO sys_role_menu VALUES ('2', '100002'); -- 学习计划新增
@@ -65,6 +69,7 @@ INSERT INTO sys_role_menu VALUES ('2', '100201'); -- 统计数据查询
 INSERT INTO sys_role_menu VALUES ('2', '100202'); -- 学习报告生成
 
 -- 管理员角色权限（角色ID=1）
+INSERT INTO sys_role_menu VALUES ('1', '900'); -- 首页
 INSERT INTO sys_role_menu VALUES ('1', '1000'); -- 学习计划
 INSERT INTO sys_role_menu VALUES ('1', '100001'); -- 学习计划查询
 INSERT INTO sys_role_menu VALUES ('1', '100002'); -- 学习计划新增

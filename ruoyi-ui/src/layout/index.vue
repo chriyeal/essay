@@ -1,11 +1,11 @@
 <template>
   <div :class="classObj" class="app-wrapper" :style="{'--current-color': theme}">
     <div v-if="device==='mobile'&&sidebar.opened" class="drawer-bg" @click="handleClickOutside"/>
-    <sidebar v-if="!sidebar.hide" class="sidebar-container"/>
-    <div :class="{hasTagsView:needTagsView,sidebarHide:sidebar.hide}" class="main-container">
+    <!-- 隐藏左侧菜单栏 -->
+    <!-- <sidebar v-if="!sidebar.hide" class="sidebar-container"/> -->
+    <div :class="{hasTagsView:needTagsView,sidebarHide:sidebar.hide}" class="main-container centered-layout">
       <div :class="{'fixed-header':fixedHeader}">
         <navbar @setLayout="setLayout"/>
-        <tags-view v-if="needTagsView"/>
       </div>
       <app-main/>
       <settings ref="settingRef"/>
@@ -111,5 +111,20 @@ export default {
 
   .mobile .fixed-header {
     width: 100%;
+  }
+
+  // 居中布局样式
+  .centered-layout {
+    margin-left: 0 !important;
+    width: 100% !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    .app-main {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
   }
 </style>

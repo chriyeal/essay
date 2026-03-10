@@ -1,23 +1,23 @@
 <p align="center">
 	<img alt="logo" src="https://oscimg.oschina.net/oscnet/up-d3d0a9303e11d522a06cd263f3079027715.png">
 </p>
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi v3.9.1</h1>
-<h4 align="center">基于SpringBoot+Vue前后端分离的Java快速开发框架</h4>
+<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">学习计划管理系统 v1.0</h1>
+<h4 align="center">基于SpringBoot+Vue的个性化学习计划管理平台</h4>
 <p align="center">
 	<a href="https://gitee.com/y_project/RuoYi-Vue/stargazers"><img src="https://gitee.com/y_project/RuoYi-Vue/badge/star.svg?theme=dark"></a>
 	<a href="https://gitee.com/y_project/RuoYi-Vue"><img src="https://img.shields.io/badge/RuoYi-v3.9.1-brightgreen.svg"></a>
 	<a href="https://gitee.com/y_project/RuoYi-Vue/blob/master/LICENSE"><img src="https://img.shields.io/github/license/mashape/apistatus.svg"></a>
 </p>
 
-## 平台简介
+## 学习计划管理系统简介
 
-若依是一套全部开源的快速开发平台，毫无保留给个人及企业免费使用。
+学习计划管理系统是一个专注于个性化学习管理的平台，帮助用户制定、跟踪和优化学习计划。
 
-* 前端采用Vue、Element UI。
-* 后端采用Spring Boot、Spring Security、Redis & Jwt。
-* 权限认证使用Jwt，支持多终端认证系统。
-* 支持加载动态权限菜单，多方式轻松权限控制。
-* 高效率开发，使用代码生成器可以一键生成前后端代码。
+* 前端采用Vue、Element UI构建现代化界面。
+* 后端采用Spring Boot、Spring Security、Redis & Jwt保障系统安全。
+* 支持番茄工作法，提升学习专注度。
+* 提供学习数据可视化分析，帮助用户了解学习情况。
+* 完善的权限管理体系，区分普通用户和管理员角色。
 * 提供了技术栈（Vue3 Element Plus Vite）的 [RuoYi-Vue3](https://gitcode.com/yangzongzhuan/RuoYi-Vue3)版本，以及技术栈（TypeScript）的 [RuoYi-Vue3-TypeScript](https://gitcode.com/yangzongzhuan/RuoYi-Vue3/tree/typescript)版本，两者保持同步更新。
 * 提供了适配 Spring Boot 3 的版本分支 [RuoYi-Vue (springboot3)](https://gitee.com/y_project/RuoYi-Vue/tree/springboot3)，以及特定需求的 单应用版本 [RuoYi-Vue-fast](https://gitcode.com/yangzongzhuan/RuoYi-Vue-fast) 与 Oracle数据库版本 [RuoYi-Vue-Oracle](https://gitcode.com/yangzongzhuan/RuoYi-Vue-Oracle)，均保持同步更新。
 * 阿里云折扣场：[点我进入](http://aly.ruoyi.vip)，腾讯云秒杀场：[点我进入](http://txy.ruoyi.vip)&nbsp;&nbsp;

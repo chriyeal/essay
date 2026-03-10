@@ -7,11 +7,11 @@ function resolve(dir) {
 
 const CompressionPlugin = require('compression-webpack-plugin')
 
-const name = process.env.VUE_APP_TITLE || '若依管理系统' // 网页标题
+const name = process.env.VUE_APP_TITLE || '学习计划管理系统' // 网页标题
 
 const baseUrl = 'http://localhost:8085' // 后端接口
 
-const port = process.env.port || process.env.npm_config_port || 1117 // 端口
+const port = 1117 // 端口
 
 // vue.config.js 配置说明
 //官方vue.config.js 参考文档 https://cli.vuejs.org/zh/config/#css-loaderoptions

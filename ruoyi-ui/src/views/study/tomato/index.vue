@@ -413,6 +413,24 @@ export default {
   beforeDestroy() {
     this.clearTimer();
   },
+  beforeRouteLeave(to, from, next) {
+    if (this.isRunning || this.isPaused) {
+      this.$confirm('番茄钟正在运行中，离开页面将中断计时，确认离开吗？', '提示', {
+        confirmButtonText: '确认离开',
+        cancelButtonText: '继续专注',
+        type: 'warning'
+      }).then(() => {
+        this.clearTimer();
+        this.isRunning = false;
+        this.isPaused = false;
+        next();
+      }).catch(() => {
+        next(false);
+      });
+    } else {
+      next();
+    }
+  },
   methods: {
     /** 加载统计数据 */
     loadStatistics() {

@@ -1,7 +1,12 @@
 import Vue from 'vue'
 import store from '@/store'
 import DataDict from '@/utils/dict'
-import { getDicts as getDicts } from '@/api/system/dict/data'
+// import { getDicts as getDicts } from '@/api/system/dict/data'
+
+// 临时占位函数，避免报错
+const getDicts = (type) => {
+ return Promise.resolve({ data: [] })
+}
 
 function searchDictByKey(dict, key) {
   if (key == null && key == "") {

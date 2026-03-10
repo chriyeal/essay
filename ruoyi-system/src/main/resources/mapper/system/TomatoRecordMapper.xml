@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.TomatoRecordMapper">
+    
+    <resultMap type="TomatoRecord" id="TomatoRecordResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="planId"    column="plan_id"    />
+        <result property="tomatoDuration"    column="tomato_duration"    />
+        <result property="restDuration"    column="rest_duration"    />
+        <result property="startTime"    column="start_time"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="status"    column="status"    />
+        <result property="interruptionReason"    column="interruption_reason"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectTomatoRecordVo">
+        select record_id, user_id, plan_id, tomato_duration, rest_duration, start_time, end_time, status, interruption_reason, create_time from tomato_record
+    </sql>
+
+    <select id="selectTomatoRecordList" parameterType="TomatoRecord" resultMap="TomatoRecordResult">
+        <include refid="selectTomatoRecordVo"/>
+        <where>  
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="planId != null "> and plan_id = #{planId}</if>
+            <if test="tomatoDuration != null "> and tomato_duration = #{tomatoDuration}</if>
+            <if test="restDuration != null "> and rest_duration = #{restDuration}</if>
+            <if test="startTime != null "> and start_time = #{startTime}</if>
+            <if test="endTime != null "> and end_time = #{endTime}</if>
+            <if test="status != null "> and status = #{status}</if>
+            <if test="interruptionReason != null  and interruptionReason != ''"> and interruption_reason = #{interruptionReason}</if>
+        </where>
+        order by create_time desc
+    </select>
+    
+    <select id="selectTomatoRecordByRecordId" parameterType="Long" resultMap="TomatoRecordResult">
+        <include refid="selectTomatoRecordVo"/>
+        where record_id = #{recordId}
+    </select>
+        
+    <insert id="insertTomatoRecord" parameterType="TomatoRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into tomato_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="planId != null">plan_id,</if>
+            <if test="tomatoDuration != null">tomato_duration,</if>
+            <if test="restDuration != null">rest_duration,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="status != null">status,</if>
+            <if test="interruptionReason != null">interruption_reason,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="planId != null">#{planId},</if>
+            <if test="tomatoDuration != null">#{tomatoDuration},</if>
+            <if test="restDuration != null">#{restDuration},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="status != null">#{status},</if>
+            <if test="interruptionReason != null">#{interruptionReason},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateTomatoRecord" parameterType="TomatoRecord">
+        update tomato_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="planId != null">plan_id = #{planId},</if>
+            <if test="tomatoDuration != null">tomato_duration = #{tomatoDuration},</if>
+            <if test="restDuration != null">rest_duration = #{restDuration},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="interruptionReason != null">interruption_reason = #{interruptionReason},</if>
+        </trim>
+        where record_id = #{recordId}
+    </update>
+
+    <delete id="deleteTomatoRecordByRecordId" parameterType="Long">
+        delete from tomato_record where record_id = #{recordId}
+    </delete>
+
+    <delete id="deleteTomatoRecordByRecordIds" parameterType="String">
+        delete from tomato_record where record_id in 
+        <foreach item="recordId" collection="array" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+    
+    <select id="selectTomatoRecordByUserId" parameterType="Long" resultMap="TomatoRecordResult">
+        <include refid="selectTomatoRecordVo"/>
+        where user_id = #{userId}
+        order by create_time desc
+    </select>
+    
+    <select id="selectTodayTomatoRecordByUserId" parameterType="Long" resultMap="TomatoRecordResult">
+        <include refid="selectTomatoRecordVo"/>
+        where user_id = #{userId} 
+        and date(start_time) = curdate()
+        order by create_time desc
+    </select>
+    
+    <select id="countCompletedTomatoByUserId" parameterType="Long" resultType="int">
+        select count(*) from tomato_record 
+        where user_id = #{userId} and status = 1
+    </select>
+    
+    <select id="selectActiveTomatoByUserId" parameterType="Long" resultMap="TomatoRecordResult">
+        <include refid="selectTomatoRecordVo"/>
+        where user_id = #{userId} and status = 0
+        order by create_time desc
+        limit 1
+    </select>
+</mapper>

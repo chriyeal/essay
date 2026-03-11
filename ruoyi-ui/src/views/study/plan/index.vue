@@ -6,10 +6,10 @@
       <p class="page-subtitle">制定、跟踪和管理您的个性化学习计划</p>
     </div>
 
-    <!-- 统计卡片 -->
+    <!-- 统计卡片 - 添加点击事件 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :xs="24" :sm="12" :md="6" v-for="stat in statistics" :key="stat.key">
-        <div class="stat-card" :style="{ borderColor: stat.color }">
+        <div class="stat-card" :style="{ borderColor: stat.color }" @click="filterByStatus(stat.key)">
           <div class="stat-icon" :style="{ backgroundColor: stat.color }">
             <i :class="stat.icon"></i>
           </div>
@@ -24,14 +24,23 @@
 
     <!-- 操作栏 -->
     <div class="toolbar">
-      <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新建计划</el-button>
-      <el-button type="success" icon="el-icon-magic-stick" @click="handleGenerate">智能生成</el-button>
-      <el-button icon="el-icon-refresh" @click="getList">刷新</el-button>
+      <div class="toolbar-left">
+        <el-button type="primary" icon="el-icon-plus" @click="handleAdd">新建计划</el-button>
+        <el-button type="success" icon="el-icon-magic-stick" @click="handleGenerate">智能生成</el-button>
+        <el-button type="warning" icon="el-icon-refresh" @click="getList">刷新</el-button>
+        
+        <!-- 计划类型切换 -->
+        <el-radio-group v-model="planTypeFilter" @change="handlePlanTypeChange" style="margin-left: 20px;">
+          <el-radio-button label="overall">总体计划</el-radio-button>
+          <el-radio-button label="today">今日计划</el-radio-button>
+          <el-radio-button label="all">全部计划</el-radio-button>
+        </el-radio-group>
+      </div>
       
       <div class="toolbar-right">
         <el-input
-          v-model="queryParams.title"
-          placeholder="搜索计划标题..."
+          v-model="queryParams.planName"
+          placeholder="搜索计划名称..."
           clearable
           style="width: 200px; margin-right: 10px;"
           @keyup.enter.native="handleQuery"
@@ -60,11 +69,11 @@
       :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
       class="plan-table"
     >
-      <el-table-column prop="title" label="计划标题" min-width="200">
+      <el-table-column prop="planName" label="计划标题" min-width="200">
         <template slot-scope="scope">
           <div class="plan-title-cell">
             <i :class="getPriorityIcon(scope.row.priority)" :style="{ color: getPriorityColor(scope.row.priority) }"></i>
-            <span class="plan-title">{{ scope.row.title }}</span>
+            <span class="plan-title">{{ scope.row.planName }}</span>
             <el-tag v-if="scope.row.isTemplate" size="mini" type="info">模板</el-tag>
           </div>
         </template>
@@ -168,8 +177,8 @@
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="12">
-            <el-form-item label="计划标题" prop="title">
-              <el-input v-model="form.title" placeholder="请输入计划标题" />
+            <el-form-item label="计划名称" prop="planName">
+              <el-input v-model="form.planName" placeholder="请输入计划名称" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -367,11 +376,13 @@ export default {
         { key: 'completed', label: '已完成', labelEn: 'Completed', value: 0, icon: 'el-icon-check', color: '#E6A23C' },
         { key: 'templates', label: '模板数', labelEn: 'Templates', value: 0, icon: 'el-icon-copy-document', color: '#F56C6C' }
       ],
+      // 计划类型筛选
+      planTypeFilter: 'all',
       // 查询参数
       queryParams: {
         pageNum: 1,
         pageSize: 10,
-        title: null,
+        planName: null,
         subject: null,
         status: null
       },
@@ -387,8 +398,8 @@ export default {
       },
       // 表单校验
       rules: {
-        title: [
-          { required: true, message: "计划标题不能为空", trigger: "blur" }
+        planName: [
+          { required: true, message: "计划名称不能为空", trigger: "blur" }
         ],
         subject: [
           { required: true, message: "学科不能为空", trigger: "change" }
@@ -452,6 +463,30 @@ export default {
         ];
       });
     },
+    /** 根据状态筛选计划 */
+    filterByStatus(statusKey) {
+      const statusMap = {
+        'total': '',
+        'ongoing': '0',
+        'completed': '1',
+        'templates': ''
+      };
+      
+      this.queryParams.status = statusMap[statusKey] || '';
+      if (statusKey === 'templates') {
+        this.queryParams.isTemplate = 1;
+      } else {
+        this.queryParams.isTemplate = null;
+      }
+      this.queryParams.pageNum = 1;
+      this.getList();
+    },
+    /** 计划类型改变 */
+    handlePlanTypeChange() {
+      this.queryParams.planType = this.planTypeFilter === 'all' ? null : this.planTypeFilter;
+      this.queryParams.pageNum = 1;
+      this.getList();
+    },
     // 取消按钮
     cancel() {
       this.open = false;
@@ -466,7 +501,7 @@ export default {
     reset() {
       this.form = {
         planId: null,
-        title: null,
+        planName: null,
         subject: null,
         priority: "1",
         difficulty: 2,
@@ -739,6 +774,13 @@ export default {
     margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 10px;
+    
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
     
     .toolbar-right {
       display: flex;

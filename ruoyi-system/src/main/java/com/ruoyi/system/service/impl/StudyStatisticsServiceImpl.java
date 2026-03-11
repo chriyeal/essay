@@ -161,7 +161,6 @@ public class StudyStatisticsServiceImpl implements IStudyStatisticsService
             statistics.setTomatoTimeSpent(tomatoTimeSpent != null ? tomatoTimeSpent : 0);
             statistics.setTotalTimeSpent((planTimeSpent != null ? planTimeSpent : 0) + (tomatoTimeSpent != null ? tomatoTimeSpent : 0));
             statistics.setCompletedPlans(completedPlans != null ? completedPlans : 0);
-            statistics.setProductivityScore(new java.math.BigDecimal(calculateProductivityScore(userId, today)));
             return insertStudyStatistics(statistics);
         } else {
             // 更新当日统计数据
@@ -175,7 +174,6 @@ public class StudyStatisticsServiceImpl implements IStudyStatisticsService
             if (completedPlans != null) {
                 statistics.setCompletedPlans(statistics.getCompletedPlans() + completedPlans);
             }
-            statistics.setProductivityScore(new java.math.BigDecimal(calculateProductivityScore(userId, today)));
             return updateStudyStatistics(statistics);
         }
     }

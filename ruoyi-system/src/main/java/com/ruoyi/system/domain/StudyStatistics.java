@@ -49,10 +49,6 @@ public class StudyStatistics extends BaseEntity
     @Excel(name = "科目分布")
     private String subjectDistribution;
 
-    /** 学习效率评分(0-10) */
-    @Excel(name = "学习效率评分")
-    private BigDecimal productivityScore;
-
     public void setStatId(Long statId) 
     {
         this.statId = statId;
@@ -125,15 +121,6 @@ public class StudyStatistics extends BaseEntity
     {
         return subjectDistribution;
     }
-    public void setProductivityScore(BigDecimal productivityScore) 
-    {
-        this.productivityScore = productivityScore;
-    }
-
-    public BigDecimal getProductivityScore() 
-    {
-        return productivityScore;
-    }
 
     @Override
     public String toString() {
@@ -146,7 +133,6 @@ public class StudyStatistics extends BaseEntity
             .append("totalTimeSpent", getTotalTimeSpent())
             .append("completedPlans", getCompletedPlans())
             .append("subjectDistribution", getSubjectDistribution())
-            .append("productivityScore", getProductivityScore())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
             .toString();

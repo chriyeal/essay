@@ -48,10 +48,6 @@ public class TomatoRecord extends BaseEntity
     @Excel(name = "状态")
     private Integer status;
 
-    /** 中断原因 */
-    @Excel(name = "中断原因")
-    private String interruptionReason;
-
     public void setRecordId(Long recordId) 
     {
         this.recordId = recordId;
@@ -124,15 +120,6 @@ public class TomatoRecord extends BaseEntity
     {
         return status;
     }
-    public void setInterruptionReason(String interruptionReason) 
-    {
-        this.interruptionReason = interruptionReason;
-    }
-
-    public String getInterruptionReason() 
-    {
-        return interruptionReason;
-    }
 
     @Override
     public String toString() {
@@ -145,7 +132,6 @@ public class TomatoRecord extends BaseEntity
             .append("startTime", getStartTime())
             .append("endTime", getEndTime())
             .append("status", getStatus())
-            .append("interruptionReason", getInterruptionReason())
             .append("createTime", getCreateTime())
             .toString();
     }

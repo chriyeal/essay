@@ -108,6 +108,8 @@
                 <div class="task-stats">
                   <span><i class="el-icon-time"></i> 已专注 {{ formatMinutes(currentRecord.elapsedTime || 0) }}</span>
                   <span><i class="el-icon-timer"></i> 第 {{ currentRecord.currentCycle || 1 }} 个番茄钟</span>
+                  <span v-if="currentRecord.subject"><i class="el-icon-collection"></i> {{ currentRecord.subject }}</span>
+                  <span v-if="currentRecord.difficulty"><i class="el-icon-star-off"></i> 难度: {{ getDifficultyText(currentRecord.difficulty) }}</span>
                 </div>
               </div>
             </div>
@@ -179,6 +181,14 @@
                   ></el-switch>
                 </el-form-item>
                 
+                <!-- 自动设置时间功能 -->
+                <el-form-item label="智能时间设置">
+                  <el-button type="success" icon="el-icon-magic-stick" @click="autoSetTime" :loading="autoSettingLoading">
+                    {{ autoSettingLoading ? '正在分析...' : '根据任务自动设置时间' }}
+                  </el-button>
+                  <p class="setting-tip">系统会根据任务难度和学科自动推荐合适的时间设置</p>
+                </el-form-item>
+                
                 <el-button type="primary" @click="saveSettings">保存设置</el-button>
               </el-collapse-item>
               
@@ -190,6 +200,36 @@
                       placeholder="请输入当前学习任务"
                     ></el-input>
                   </el-form-item>
+                  
+                  <el-row>
+                    <el-col :span="12">
+                      <el-form-item label="学科">
+                        <el-select v-model="taskForm.subject" placeholder="选择学科" style="width: 100%;">
+                          <el-option label="数学" value="数学"></el-option>
+                          <el-option label="英语" value="英语"></el-option>
+                          <el-option label="语文" value="语文"></el-option>
+                          <el-option label="物理" value="物理"></el-option>
+                          <el-option label="化学" value="化学"></el-option>
+                          <el-option label="生物" value="生物"></el-option>
+                          <el-option label="历史" value="历史"></el-option>
+                          <el-option label="地理" value="地理"></el-option>
+                          <el-option label="政治" value="政治"></el-option>
+                          <el-option label="计算机" value="计算机"></el-option>
+                          <el-option label="其他" value="其他"></el-option>
+                        </el-select>
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="难度">
+                        <el-rate
+                          v-model="taskForm.difficulty"
+                          :max="3"
+                          show-text
+                          :texts="['简单', '中等', '困难']"
+                        ></el-rate>
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
                   
                   <el-form-item label="任务描述">
                     <el-input
@@ -354,6 +394,8 @@ export default {
       taskForm: {
         taskTitle: '',
         description: '',
+        subject: '',
+        difficulty: 2,
         planId: null
       },
       
@@ -386,7 +428,10 @@ export default {
       },
       
       // 折叠面板
-      activeNames: ['1']
+      activeNames: ['1'],
+      
+      // 自动设置加载状态
+      autoSettingLoading: false,
     };
   },
   computed: {
@@ -499,6 +544,51 @@ export default {
         this.settings = JSON.parse(savedSettings);
       }
       this.updateTimerDisplay();
+    },
+    /** 自动设置时间 */
+    autoSetTime() {
+      this.autoSettingLoading = true;
+      
+      // 模拟智能分析过程
+      setTimeout(() => {
+        // 根据任务难度和学科智能设置时间
+        let tomatoDuration = 25; // 默认25分钟
+        let restDuration = 5;    // 默认5分钟
+        
+        // 根据学科调整时间
+        const subjectTimes = {
+          '数学': { tomato: 30, rest: 5 },
+          '物理': { tomato: 30, rest: 5 },
+          '化学': { tomato: 25, rest: 5 },
+          '英语': { tomato: 20, rest: 5 },
+          '语文': { tomato: 20, rest: 5 },
+          '计算机': { tomato: 35, rest: 10 },
+          '历史': { tomato: 20, rest: 5 },
+          '地理': { tomato: 20, rest: 5 }
+        };
+        
+        const subject = this.taskForm.subject || '其他';
+        if (subjectTimes[subject]) {
+          tomatoDuration = subjectTimes[subject].tomato;
+          restDuration = subjectTimes[subject].rest;
+        }
+        
+        // 根据难度调整时间
+        const difficulty = this.taskForm.difficulty || 2;
+        if (difficulty === 1) { // 简单
+          tomatoDuration = Math.max(15, tomatoDuration - 10);
+        } else if (difficulty === 3) { // 困难
+          tomatoDuration = Math.min(45, tomatoDuration + 10);
+          restDuration = Math.min(15, restDuration + 5);
+        }
+        
+        // 更新设置
+        this.settings.focusDuration = tomatoDuration * 60; // 转换为秒
+        this.settings.breakDuration = restDuration * 60;
+        
+        this.$message.success(`已为您智能设置：专注${tomatoDuration}分钟，休息${restDuration}分钟`);
+        this.autoSettingLoading = false;
+      }, 1500);
     },
     /** 保存设置 */
     saveSettings() {
@@ -671,7 +761,16 @@ export default {
       const secs = seconds % 60;
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     },
-    // 格式化分钟数
+    /** 获取难度文本 */
+    getDifficultyText(difficulty) {
+      const texts = {
+        1: '简单',
+        2: '中等',
+        3: '困难'
+      };
+      return texts[difficulty] || '中等';
+    },
+    /** 格式化分钟 */
     formatMinutes(minutes) {
       if (minutes < 60) {
         return `${minutes}分钟`;
@@ -735,6 +834,13 @@ export default {
       color: #666;
       font-weight: 300;
     }
+  }
+  
+  .setting-tip {
+    font-size: 0.9rem;
+    color: #999;
+    margin-top: 8px;
+    margin-bottom: 0;
   }
   
   .stats-overview {

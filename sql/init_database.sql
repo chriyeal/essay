@@ -37,19 +37,36 @@ CREATE TABLE study_plan (
   plan_id           bigint(20)      NOT NULL AUTO_INCREMENT    COMMENT '计划ID',
   user_id           bigint(20)      NOT NULL                   COMMENT '用户ID',
   plan_name         varchar(100)    NOT NULL                   COMMENT '计划名称',
+  plan_type         varchar(20)     DEFAULT 'overall'          COMMENT '计划类型(overall总体计划, today今日计划)',
+  parent_plan_id    bigint(20)      DEFAULT NULL               COMMENT '父计划ID(用于关联总体计划和今日计划)',
+  start_date        date            DEFAULT NULL               COMMENT '开始日期',
+  end_date          date            DEFAULT NULL               COMMENT '结束日期',
   deadline          datetime        DEFAULT NULL               COMMENT '截止日期',
-  priority          int(1)          DEFAULT 3                  COMMENT '优先级(1-5，5最高)',
+  priority          int(1)          DEFAULT 1                  COMMENT '优先级(0低1中2高)',
+  difficulty        int(1)          DEFAULT 2                  COMMENT '难度等级(1简单2中等3困难)',
   tags              varchar(200)    DEFAULT ''                 COMMENT '标签分类',
   subject           varchar(50)     DEFAULT ''                 COMMENT '学科分类',
   description       varchar(500)    DEFAULT ''                 COMMENT '计划描述',
+  learning_goals    varchar(500)    DEFAULT ''                 COMMENT '学习目标',
   estimated_hours   decimal(5,2)    DEFAULT 0.00               COMMENT '预计时长(小时)',
   actual_hours      decimal(5,2)    DEFAULT 0.00               COMMENT '实际时长(小时)',
+  progress          int(3)          DEFAULT 0                  COMMENT '进度百分比(0-100)',
+  total_tasks       int(11)         DEFAULT 0                  COMMENT '总任务数',
+  completed_tasks   int(11)         DEFAULT 0                  COMMENT '已完成任务数',
+  status            varchar(20)     DEFAULT '0'                COMMENT '状态(0进行中1已完成2已取消)',
+  is_template       tinyint(1)      DEFAULT 0                  COMMENT '是否为模板(0否1是)',
   is_completed      tinyint(1)      DEFAULT 0                  COMMENT '是否完成(0未完成1已完成)',
   completed_time    datetime        DEFAULT NULL               COMMENT '完成时间',
   create_time       datetime        DEFAULT CURRENT_TIMESTAMP  COMMENT '创建时间',
   update_time       datetime        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (plan_id),
   KEY idx_user_id (user_id),
+  KEY idx_plan_type (plan_type),
+  KEY idx_parent_plan_id (parent_plan_id),
+  KEY idx_start_date (start_date),
+  KEY idx_end_date (end_date),
+  KEY idx_status (status),
+  KEY idx_is_template (is_template),
   KEY idx_deadline (deadline),
   KEY idx_is_completed (is_completed)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='学习计划表';
@@ -117,22 +134,20 @@ INSERT INTO sys_user (user_id, user_name, nick_name, email, phonenumber, sex, pa
 -- 学习计划示例数据
 -- =============================================
 -- 张三的学习计划
-INSERT INTO study_plan (user_id, plan_name, deadline, priority, tags, subject, description, estimated_hours, actual_hours, is_completed, completed_time) VALUES
-(100, '高等数学期末复习', '2026-03-20 18:00:00', 5, '数学,考试', '数学', '复习微积分、线性代数重点章节', 20.00, 8.50, 0, NULL),
-(100, '英语四级备考', '2026-04-15 18:00:00', 4, '英语,考试', '英语', '背诵单词、练习听力、阅读理解', 30.00, 12.00, 0, NULL),
-(100, 'Java编程入门', '2026-03-25 18:00:00', 3, '编程,Java', '计算机', '学习Java基础语法和面向对象', 15.00, 15.00, 1, '2026-03-10 16:30:00');
+INSERT INTO study_plan (user_id, plan_name, plan_type, start_date, end_date, priority, difficulty, subject, description, learning_goals, estimated_hours, progress, total_tasks, completed_tasks, status) VALUES
+(100, 'Java基础学习', 'overall', '2026-03-01', '2026-04-30', 2, 2, '计算机', '系统学习Java编程语言基础', '掌握Java语法;理解面向对象编程;完成基础练习', 60.00, 45, 10, 4, '0'),
+(100, '今日Java练习', 'today', '2026-03-10', '2026-03-10', 2, 2, '计算机', '完成Java数组和集合练习', '完成数组练习题5道;完成集合练习题3道', 3.00, 60, 8, 5, '0'),
+(100, '数据结构复习', 'overall', '2026-03-15', '2026-04-15', 1, 3, '计算机', '复习常见的数据结构知识', '理解线性表;掌握树和图的基本概念;完成相关算法练习', 40.00, 20, 15, 3, '0');
 
 -- 李四的学习计划
-INSERT INTO study_plan (user_id, plan_name, deadline, priority, tags, subject, description, estimated_hours, actual_hours, is_completed, completed_time) VALUES
-(101, '数据结构学习', '2026-03-30 18:00:00', 5, '编程,数据结构', '计算机', '学习链表、树、图等基础数据结构', 25.00, 10.00, 0, NULL),
-(101, '毕业论文写作', '2026-05-01 18:00:00', 5, '论文,毕业', '综合', '完成毕业论文初稿', 40.00, 5.00, 0, NULL),
-(101, 'Python数据分析', '2026-04-10 18:00:00', 3, 'Python,数据分析', '计算机', '学习Pandas和Matplotlib', 18.00, 18.00, 1, '2026-03-09 14:00:00');
+INSERT INTO study_plan (user_id, plan_name, plan_type, start_date, end_date, priority, difficulty, subject, description, learning_goals, estimated_hours, progress, total_tasks, completed_tasks, status) VALUES
+(101, '高等数学', 'overall', '2026-03-01', '2026-05-31', 2, 3, '数学', '学习微积分和线性代数', '掌握极限和导数;理解积分概念;学会矩阵运算', 80.00, 30, 20, 6, '0'),
+(101, '今日微积分练习', 'today', '2026-03-10', '2026-03-10', 2, 3, '数学', '完成导数计算练习', '完成导数计算题10道;理解链式法则应用', 2.50, 0, 10, 0, '0');
 
 -- 王五的学习计划
-INSERT INTO study_plan (user_id, plan_name, deadline, priority, tags, subject, description, estimated_hours, actual_hours, is_completed, completed_time) VALUES
-(102, '机器学习入门', '2026-04-20 18:00:00', 5, 'AI,机器学习', '计算机', '学习监督学习和非监督学习基础', 35.00, 15.00, 0, NULL),
-(102, '前端开发实战', '2026-03-28 18:00:00', 4, '前端,Vue', '计算机', '完成Vue项目实战练习', 20.00, 20.00, 1, '2026-03-08 17:00:00'),
-(102, '操作系统原理', '2026-04-05 18:00:00', 3, '计算机,操作系统', '计算机', '学习进程管理和内存管理', 12.00, 6.00, 0, NULL);
+INSERT INTO study_plan (user_id, plan_name, plan_type, start_date, end_date, priority, difficulty, subject, description, learning_goals, estimated_hours, progress, total_tasks, completed_tasks, status, is_template) VALUES
+(102, '前端开发实战', 'overall', '2026-03-01', '2026-04-30', 2, 2, '计算机', '完成Vue项目实战练习', '掌握Vue组件开发;学会状态管理;完成项目部署', 50.00, 70, 12, 8, '0', 1),
+(102, '操作系统原理', 'overall', '2026-03-15', '2026-05-15', 1, 3, '计算机', '学习进程管理和内存管理', '理解进程调度算法;掌握内存分配策略;学会虚拟内存管理', 45.00, 15, 15, 2, '0', 0);
 
 -- =============================================
 -- 番茄钟记录示例数据

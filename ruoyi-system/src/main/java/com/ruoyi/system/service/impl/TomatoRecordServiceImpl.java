@@ -179,7 +179,6 @@ public class TomatoRecordServiceImpl implements ITomatoRecordService
         tomatoRecord.setRecordId(recordId);
         tomatoRecord.setEndTime(new Date());
         tomatoRecord.setStatus(2); // 已中断
-        tomatoRecord.setInterruptionReason(reason);
         return tomatoRecordMapper.updateTomatoRecord(tomatoRecord);
     }
 

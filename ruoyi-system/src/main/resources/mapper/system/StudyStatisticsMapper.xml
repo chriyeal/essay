@@ -8,8 +8,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="statId"    column="stat_id"    />
         <result property="userId"    column="user_id"    />
         <result property="studyDate"    column="study_date"    />
-        <result property="planTimeSpent"    column="plan_time_spent"    />
-        <result property="tomatoTimeSpent"    column="tomato_time_spent"    />
+        <result property="planTimeSpent"    column="total_study_time"    />
+        <result property="tomatoTimeSpent"    column="tomato_count"    />
         <result property="totalTimeSpent"    column="total_study_time"    />
         <result property="completedPlans"    column="completed_plans"    />
         <result property="subjectDistribution"    column="subject_distribution"    />
@@ -19,7 +19,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectStudyStatisticsVo">
-        select stat_id, user_id, study_date, plan_time_spent, tomato_time_spent, total_study_time, completed_plans, subject_distribution, productivity_score, create_time, update_time from study_statistics
+        select stat_id, user_id, study_date, total_study_time, tomato_count, completed_plans, subject_distribution, productivity_score, create_time, update_time from study_statistics
     </sql>
 
     <select id="selectStudyStatisticsList" parameterType="StudyStatistics" resultMap="StudyStatisticsResult">
@@ -27,8 +27,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <where>  
             <if test="userId != null "> and user_id = #{userId}</if>
             <if test="studyDate != null "> and study_date = #{studyDate}</if>
-            <if test="planTimeSpent != null "> and plan_time_spent = #{planTimeSpent}</if>
-            <if test="tomatoTimeSpent != null "> and tomato_time_spent = #{tomatoTimeSpent}</if>
+            <if test="planTimeSpent != null "> and total_study_time = #{planTimeSpent}</if>
+            <if test="tomatoTimeSpent != null "> and tomato_count = #{tomatoTimeSpent}</if>
             <if test="totalTimeSpent != null "> and total_study_time = #{totalTimeSpent}</if>
             <if test="completedPlans != null "> and completed_plans = #{completedPlans}</if>
             <if test="subjectDistribution != null  and subjectDistribution != ''"> and subject_distribution = #{subjectDistribution}</if>
@@ -47,8 +47,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="userId != null">user_id,</if>
             <if test="studyDate != null">study_date,</if>
-            <if test="planTimeSpent != null">plan_time_spent,</if>
-            <if test="tomatoTimeSpent != null">tomato_time_spent,</if>
+            <if test="planTimeSpent != null">total_study_time,</if>
+            <if test="tomatoTimeSpent != null">tomato_count,</if>
             <if test="totalTimeSpent != null">total_study_time,</if>
             <if test="completedPlans != null">completed_plans,</if>
             <if test="subjectDistribution != null">subject_distribution,</if>
@@ -75,8 +75,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="SET" suffixOverrides=",">
             <if test="userId != null">user_id = #{userId},</if>
             <if test="studyDate != null">study_date = #{studyDate},</if>
-            <if test="planTimeSpent != null">plan_time_spent = #{planTimeSpent},</if>
-            <if test="tomatoTimeSpent != null">tomato_time_spent = #{tomatoTimeSpent},</if>
+            <if test="planTimeSpent != null">total_study_time = #{planTimeSpent},</if>
+            <if test="tomatoTimeSpent != null">tomato_count = #{tomatoTimeSpent},</if>
             <if test="totalTimeSpent != null">total_study_time = #{totalTimeSpent},</if>
             <if test="completedPlans != null">completed_plans = #{completedPlans},</if>
             <if test="subjectDistribution != null">subject_distribution = #{subjectDistribution},</if>
@@ -112,8 +112,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectStudySummaryByUserId" parameterType="Long" resultMap="StudyStatisticsResult">
         select 
             user_id,
-            sum(plan_time_spent) as plan_time_spent,
-            sum(tomato_time_spent) as tomato_time_spent,
+            sum(total_study_time) as plan_time_spent,
+            sum(tomato_count) as tomato_time_spent,
             sum(total_study_time) as total_study_time,
             sum(completed_plans) as completed_plans,
             avg(productivity_score) as productivity_score

@@ -75,6 +75,45 @@ export const constantRoutes = [
     ]
   },
   {
+    path: '/study/plan',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/study/plan/index'),
+        name: 'StudyPlan',
+        meta: { title: '学习计划', icon: 'notebook-2' }
+      }
+    ]
+  },
+  {
+    path: '/study/tomato',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/study/tomato/index'),
+        name: 'TomatoTimer',
+        meta: { title: '番茄钟', icon: 'timer' }
+      }
+    ]
+  },
+  {
+    path: '/study/statistics',
+    component: Layout,
+    hidden: true,
+    children: [
+      {
+        path: '',
+        component: () => import('@/views/study/statistics/index'),
+        name: 'StudyStatistics',
+        meta: { title: '学习统计', icon: 'data-analysis' }
+      }
+    ]
+  },
+  {
     path: '/user',
     component: Layout,
     hidden: true,

@@ -1,8 +1,6 @@
 package com.ruoyi.web.controller.system;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,24 +8,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.core.domain.AjaxResult;
-import com.ruoyi.common.core.domain.entity.SysMenu;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.model.LoginBody;
 import com.ruoyi.common.core.domain.model.LoginUser;
-import com.ruoyi.common.core.text.Convert;
-import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
-import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.framework.web.service.SysLoginService;
 import com.ruoyi.framework.web.service.SysPermissionService;
 import com.ruoyi.framework.web.service.TokenService;
-import com.ruoyi.system.service.ISysConfigService;
-import com.ruoyi.system.service.ISysMenuService;
 
 /**
  * 登录验证
- * 
- * @author ruoyi
  */
 @RestController
 public class SysLoginController
@@ -36,22 +26,13 @@ public class SysLoginController
     private SysLoginService loginService;
 
     @Autowired
-    private ISysMenuService menuService;
-
-    @Autowired
     private SysPermissionService permissionService;
 
     @Autowired
     private TokenService tokenService;
 
-    @Autowired
-    private ISysConfigService configService;
-
     /**
      * 登录方法
-     * 
-     * @param loginBody 登录信息
-     * @return 结果
      */
     @PostMapping("/login")
     public AjaxResult login(@RequestBody LoginBody loginBody)
@@ -66,8 +47,6 @@ public class SysLoginController
 
     /**
      * 获取用户信息
-     * 
-     * @return 用户信息
      */
     @GetMapping("getInfo")
     public AjaxResult getInfo()
@@ -87,45 +66,91 @@ public class SysLoginController
         ajax.put("user", user);
         ajax.put("roles", roles);
         ajax.put("permissions", permissions);
-        ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
-        ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
         return ajax;
     }
 
     /**
      * 获取路由信息
-     * 
-     * @return 路由信息
      */
     @GetMapping("getRouters")
     public AjaxResult getRouters()
     {
-        Long userId = SecurityUtils.getUserId();
-        List<SysMenu> menus = menuService.selectMenuTreeByUserId(userId);
-        return AjaxResult.success(menuService.buildMenus(menus));
-    }
-    
-    // 检查初始密码是否提醒修改
-    public boolean initPasswordIsModify(Date pwdUpdateDate)
-    {
-        Integer initPasswordModify = Convert.toInt(configService.selectConfigByKey("sys.account.initPasswordModify"));
-        return initPasswordModify != null && initPasswordModify == 1 && pwdUpdateDate == null;
+        SysUser user = SecurityUtils.getLoginUser().getUser();
+        List<Map<String, Object>> menus = buildSimpleMenus(user);
+        return AjaxResult.success(menus);
     }
 
-    // 检查密码是否过期
-    public boolean passwordIsExpiration(Date pwdUpdateDate)
+    /**
+     * 构建简单的菜单路由
+     */
+    private List<Map<String, Object>> buildSimpleMenus(SysUser user)
     {
-        Integer passwordValidateDays = Convert.toInt(configService.selectConfigByKey("sys.account.passwordValidateDays"));
-        if (passwordValidateDays != null && passwordValidateDays > 0)
+        List<Map<String, Object>> menus = new ArrayList<>();
+        
+        // 首页
+        Map<String, Object> homeMenu = new HashMap<>();
+        homeMenu.put("path", "/index");
+        homeMenu.put("component", "Layout");
+        homeMenu.put("redirect", "/index");
+        List<Map<String, Object>> homeChildren = new ArrayList<>();
+        Map<String, Object> homeChild = new HashMap<>();
+        homeChild.put("path", "index");
+        homeChild.put("component", "index");
+        homeChild.put("name", "Index");
+        homeChild.put("meta", createMeta("首页", "dashboard", true));
+        homeChildren.add(homeChild);
+        homeMenu.put("children", homeChildren);
+        menus.add(homeMenu);
+
+        // 学习计划
+        menus.add(createMenu("/study-plan", "study/plan/index", "学习计划", "education", "study:plan:list"));
+
+        // 番茄钟
+        menus.add(createMenu("/tomato-clock", "study/tomato/index", "番茄钟", "clock", "study:tomato:list"));
+
+        // 学习统计
+        menus.add(createMenu("/statistics", "study/statistics/index", "学习统计", "chart", "study:statistics:list"));
+
+        // 用户管理（仅管理员可见）
+        if ("0".equals(user.getUserType()))
         {
-            if (StringUtils.isNull(pwdUpdateDate))
-            {
-                // 如果从未修改过初始密码，直接提醒过期
-                return true;
-            }
-            Date nowDate = DateUtils.getNowDate();
-            return DateUtils.differentDaysByMillisecond(nowDate, pwdUpdateDate) > passwordValidateDays;
+            menus.add(createMenu("/user-management", "study/user/index", "用户管理", "user", "system:user:list"));
         }
-        return false;
+
+        return menus;
+    }
+
+    /**
+     * 创建菜单项
+     */
+    private Map<String, Object> createMenu(String path, String component, String title, String icon, String permission)
+    {
+        Map<String, Object> menu = new HashMap<>();
+        menu.put("path", path);
+        menu.put("component", "Layout");
+        menu.put("redirect", path);
+        
+        List<Map<String, Object>> children = new ArrayList<>();
+        Map<String, Object> child = new HashMap<>();
+        child.put("path", path.substring(1));
+        child.put("component", component);
+        child.put("name", title);
+        child.put("meta", createMeta(title, icon, false));
+        children.add(child);
+        
+        menu.put("children", children);
+        return menu;
+    }
+
+    /**
+     * 创建meta信息
+     */
+    private Map<String, Object> createMeta(String title, String icon, boolean affix)
+    {
+        Map<String, Object> meta = new HashMap<>();
+        meta.put("title", title);
+        meta.put("icon", icon);
+        meta.put("affix", affix);
+        return meta;
     }
 }

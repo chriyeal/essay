@@ -1,22 +1,17 @@
 package com.ruoyi.common.utils;
 
 import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.PatternMatchUtils;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.constant.HttpStatus;
-import com.ruoyi.common.core.domain.entity.SysRole;
 import com.ruoyi.common.core.domain.model.LoginUser;
 import com.ruoyi.common.exception.ServiceException;
 
 /**
  * 安全服务工具类
- * 
- * @author ruoyi
  */
 public class SecurityUtils
 {
@@ -33,21 +28,6 @@ public class SecurityUtils
         catch (Exception e)
         {
             throw new ServiceException("获取用户ID异常", HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-    /**
-     * 获取部门ID
-     **/
-    public static Long getDeptId()
-    {
-        try
-        {
-            return getLoginUser().getDeptId();
-        }
-        catch (Exception e)
-        {
-            throw new ServiceException("获取部门ID异常", HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -160,16 +140,24 @@ public class SecurityUtils
     }
 
     /**
-     * 验证用户是否拥有某个角色
+     * 验证用户是否拥有某个角色（基于userType）
      * 
      * @param role 角色标识
      * @return 用户是否具备某角色
      */
     public static boolean hasRole(String role)
     {
-        List<SysRole> roleList = getLoginUser().getUser().getRoles();
-        Collection<String> roles = roleList.stream().map(SysRole::getRoleKey).collect(Collectors.toSet());
-        return hasRole(roles, role);
+        String userType = getLoginUser().getUser().getUserType();
+        // 管理员userType=0，普通用户userType=1
+        if ("admin".equals(role) || "0".equals(role))
+        {
+            return "0".equals(userType);
+        }
+        else if ("user".equals(role) || "1".equals(role))
+        {
+            return true; // 所有用户都有普通用户角色
+        }
+        return false;
     }
 
     /**

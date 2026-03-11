@@ -16,9 +16,7 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
- * 用户验证处理
- *
- * @author ruoyi
+ * 用户验证处理 - 简化版
  */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService
@@ -61,6 +59,7 @@ public class UserDetailsServiceImpl implements UserDetailsService
 
     public UserDetails createLoginUser(SysUser user)
     {
-        return new LoginUser(user.getUserId(), user.getDeptId(), user, permissionService.getMenuPermission(user));
+        // 简化：不再需要deptId
+        return new LoginUser(user.getUserId(), 0L, user, permissionService.getMenuPermission(user));
     }
 }

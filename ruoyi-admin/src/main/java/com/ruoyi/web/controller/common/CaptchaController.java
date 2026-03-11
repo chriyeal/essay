@@ -18,12 +18,9 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.redis.RedisCache;
 import com.ruoyi.common.utils.sign.Base64;
 import com.ruoyi.common.utils.uuid.IdUtils;
-import com.ruoyi.system.service.ISysConfigService;
 
 /**
- * 验证码操作处理
- * 
- * @author ruoyi
+ * 验证码操作处理 - 简化版
  */
 @RestController
 public class CaptchaController
@@ -37,8 +34,6 @@ public class CaptchaController
     @Autowired
     private RedisCache redisCache;
     
-    @Autowired
-    private ISysConfigService configService;
     /**
      * 生成验证码
      */
@@ -46,7 +41,7 @@ public class CaptchaController
     public AjaxResult getCode(HttpServletResponse response) throws IOException
     {
         AjaxResult ajax = AjaxResult.success();
-        boolean captchaEnabled = configService.selectCaptchaEnabled();
+        boolean captchaEnabled = true; // 默认开启验证码
         ajax.put("captchaEnabled", captchaEnabled);
         if (!captchaEnabled)
         {

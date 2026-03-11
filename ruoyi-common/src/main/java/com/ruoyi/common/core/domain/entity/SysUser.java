@@ -1,7 +1,6 @@
 package com.ruoyi.common.core.domain.entity;
 
 import java.util.Date;
-import java.util.List;
 import javax.validation.constraints.*;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -9,15 +8,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.annotation.Excel.ColumnType;
 import com.ruoyi.common.annotation.Excel.Type;
-import com.ruoyi.common.annotation.Excels;
 import com.ruoyi.common.core.domain.BaseEntity;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.xss.Xss;
 
 /**
  * 用户对象 sys_user
- * 
- * @author ruoyi
  */
 public class SysUser extends BaseEntity
 {
@@ -26,10 +22,6 @@ public class SysUser extends BaseEntity
     /** 用户ID */
     @Excel(name = "用户序号", type = Type.EXPORT, cellType = ColumnType.NUMERIC, prompt = "用户编号")
     private Long userId;
-
-    /** 部门ID */
-    @Excel(name = "部门编号", type = Type.IMPORT)
-    private Long deptId;
 
     /** 用户账号 */
     @Excel(name = "登录名称")
@@ -72,27 +64,9 @@ public class SysUser extends BaseEntity
     @Excel(name = "最后登录时间", width = 30, dateFormat = "yyyy-MM-dd HH:mm:ss", type = Type.EXPORT)
     private Date loginDate;
 
-    /** 密码最后更新时间 */
-    private Date pwdUpdateDate;
-
-    /** 部门对象 */
-    @Excels({
-        @Excel(name = "部门名称", targetAttr = "deptName", type = Type.EXPORT),
-        @Excel(name = "部门负责人", targetAttr = "leader", type = Type.EXPORT)
-    })
-    private SysDept dept;
-
-    /** 角色对象 */
-    private List<SysRole> roles;
-
-    /** 角色组 */
-    private Long[] roleIds;
-
-    /** 岗位组 */
-    private Long[] postIds;
-
-    /** 角色ID */
-    private Long roleId;
+    /** 用户类型（0管理员 1普通用户） */
+    @Excel(name = "用户类型", readConverterExp = "0=管理员,1=普通用户")
+    private String userType;
 
     /** 个性签名 */
     private String signature;
@@ -120,16 +94,6 @@ public class SysUser extends BaseEntity
     public boolean isAdmin()
     {
         return SecurityUtils.isAdmin(this.userId);
-    }
-
-    public Long getDeptId()
-    {
-        return deptId;
-    }
-
-    public void setDeptId(Long deptId)
-    {
-        this.deptId = deptId;
     }
 
     @Xss(message = "用户昵称不能包含脚本字符")
@@ -251,64 +215,14 @@ public class SysUser extends BaseEntity
         this.loginDate = loginDate;
     }
 
-    public Date getPwdUpdateDate()
+    public String getUserType()
     {
-        return pwdUpdateDate;
+        return userType;
     }
 
-    public void setPwdUpdateDate(Date pwdUpdateDate)
+    public void setUserType(String userType)
     {
-        this.pwdUpdateDate = pwdUpdateDate;
-    }
-
-    public SysDept getDept()
-    {
-        return dept;
-    }
-
-    public void setDept(SysDept dept)
-    {
-        this.dept = dept;
-    }
-
-    public List<SysRole> getRoles()
-    {
-        return roles;
-    }
-
-    public void setRoles(List<SysRole> roles)
-    {
-        this.roles = roles;
-    }
-
-    public Long[] getRoleIds()
-    {
-        return roleIds;
-    }
-
-    public void setRoleIds(Long[] roleIds)
-    {
-        this.roleIds = roleIds;
-    }
-
-    public Long[] getPostIds()
-    {
-        return postIds;
-    }
-
-    public void setPostIds(Long[] postIds)
-    {
-        this.postIds = postIds;
-    }
-
-    public Long getRoleId()
-    {
-        return roleId;
-    }
-
-    public void setRoleId(Long roleId)
-    {
-        this.roleId = roleId;
+        this.userType = userType;
     }
 
     public String getSignature()
@@ -323,9 +237,8 @@ public class SysUser extends BaseEntity
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
             .append("userId", getUserId())
-            .append("deptId", getDeptId())
             .append("userName", getUserName())
             .append("nickName", getNickName())
             .append("email", getEmail())
@@ -337,13 +250,10 @@ public class SysUser extends BaseEntity
             .append("delFlag", getDelFlag())
             .append("loginIp", getLoginIp())
             .append("loginDate", getLoginDate())
-            .append("pwdUpdateDate", getPwdUpdateDate())
-            .append("createBy", getCreateBy())
+            .append("userType", getUserType())
+            .append("signature", getSignature())
             .append("createTime", getCreateTime())
-            .append("updateBy", getUpdateBy())
             .append("updateTime", getUpdateTime())
-            .append("remark", getRemark())
-            .append("dept", getDept())
             .toString();
     }
 }

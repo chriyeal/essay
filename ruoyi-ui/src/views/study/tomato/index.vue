@@ -105,7 +105,7 @@
               <div class="task-info">
                 <h4>{{ currentPlanName }}</h4>
                 <div class="task-stats">
-                  <span><i class="el-icon-time"></i> 已专注 {{ formatMinutes(currentRecord.elapsedTime || 0) }}</span>
+                  <span><i class="el-icon-time"></i> 已专注 {{ formatSeconds(currentRecord.elapsedTime || 0) }}</span>
                   <span><i class="el-icon-timer"></i> 第 {{ currentRecord.currentCycle || 1 }} 个番茄钟</span>
                   <span v-if="learnedTime > 0"><i class="el-icon-data-line"></i> 该计划已学习 {{ formatLearnedTime(learnedTime) }}</span>
                 </div>
@@ -118,6 +118,15 @@
             <el-collapse v-model="activeNames">
               <el-collapse-item title="番茄钟设置" name="1">
                 <div class="settings-content">
+                  <div class="setting-item">
+                    <label class="setting-label">计时模式</label>
+                    <el-radio-group v-model="timerMode" size="medium">
+                      <el-radio-button label="focus">专注时间</el-radio-button>
+                      <el-radio-button label="break">休息时间</el-radio-button>
+                    </el-radio-group>
+                    <p class="setting-tip">提示：选择当前要进行的模式</p>
+                  </div>
+                  
                   <div class="setting-item">
                     <label class="setting-label">专注时间（分钟）</label>
                     <el-slider
@@ -255,12 +264,13 @@ export default {
       // 计时器相关
       timeLeft: 25 * 60, // 默认 25 分钟
       totalTime: 25 * 60, // 总时间
+      timerMode: 'focus', // 当前模式：'focus' 专注，'break' 休息
       settings: {
         tomatoDuration: 25, // 专注时间，默认 25 分钟
         restDuration: 10,   // 休息时间，默认 10 分钟
         longBreakTime: 15,
         longBreakInterval: 4,
-        autoStartBreak: true
+        autoStartBreak: false // 不自动开始休息，让用户手动选择
       },
       
       // 任务表单
@@ -312,6 +322,17 @@ export default {
       if (!this.isRunning && !this.isPaused) {
         this.updateTimerDuration();
       }
+    },
+    'settings.restDuration'(newVal) {
+      if (!this.isRunning && !this.isPaused && this.timerMode === 'break') {
+        this.updateTimerDuration();
+      }
+    },
+    timerMode(newVal) {
+      if (!this.isRunning && !this.isPaused) {
+        this.updateTimerDuration();
+      }
+      console.log('模式已切换:', newVal);
     }
   },
   computed: {
@@ -321,12 +342,7 @@ export default {
       return 'idle';
     },
     currentPhaseText() {
-      const texts = {
-        'focus': '专注时间',
-        'break': '休息时间',
-        'longBreak': '长休息时间'
-      };
-      return texts[this.currentPhase] || '专注时间';
+      return this.timerMode === 'focus' ? '专注时间' : '休息时间';
     },
     // 获取关联的学习计划名称
     currentPlanName() {
@@ -342,9 +358,18 @@ export default {
     this.loadTodayRecords();
     this.loadPlans();
     this.loadSettings();
+    
+    // 定时刷新统计数据（每 5 秒）
+    this.statsRefreshTimer = setInterval(() => {
+      this.loadStatistics();
+      this.loadTodayRecords();
+    }, 5000);
   },
   beforeDestroy() {
     this.clearTimer();
+    if (this.statsRefreshTimer) {
+      clearInterval(this.statsRefreshTimer);
+    }
   },
   beforeRouteLeave(to, from, next) {
     if (this.isRunning || this.isPaused) {
@@ -428,17 +453,34 @@ export default {
     /** 更新计时器时长 */
     updateTimerDuration() {
       const duration = parseInt(this.settings.tomatoDuration) || 25;
-      this.timeLeft = duration * 60;
-      this.totalTime = duration * 60;
-      console.log('时间已更新:', this.timeLeft, '秒');
+      if (this.timerMode === 'focus') {
+        this.timeLeft = duration * 60;
+        this.totalTime = duration * 60;
+      } else {
+        const restDuration = parseInt(this.settings.restDuration) || 10;
+        this.timeLeft = restDuration * 60;
+        this.totalTime = restDuration * 60;
+      }
+      console.log('时间已更新:', this.timeLeft, '秒，模式:', this.timerMode);
     },
     /** 加载设置 */
     loadSettings() {
       const savedSettings = localStorage.getItem('tomatoSettings');
       if (savedSettings) {
-        this.settings = JSON.parse(savedSettings);
+        try {
+          const parsed = JSON.parse(savedSettings);
+          // 只更新用户保存过的设置，保持默认值
+          this.settings = {
+            ...this.settings,
+            ...parsed
+          };
+        } catch (e) {
+          console.error('解析设置失败:', e);
+        }
       }
+      // 初始化时间显示
       this.updateTimerDisplay();
+      console.log('设置已加载:', this.settings);
     },
     /** 保存设置 */
     saveSettings() {
@@ -453,27 +495,37 @@ export default {
     },
     /** 开始计时器 */
     startTimer() {
+      // 根据用户选择的模式设置时间
+      if (this.timerMode === 'focus') {
+        this.timeLeft = this.settings.tomatoDuration * 60;
+        this.totalTime = this.settings.tomatoDuration * 60;
+      } else {
+        this.timeLeft = this.settings.restDuration * 60;
+        this.totalTime = this.settings.restDuration * 60;
+      }
+      
       const requestData = {
         planId: this.taskForm.planId,
-        totalTime: this.taskForm.totalTime,
+        totalTime: this.timerMode === 'focus' ? this.settings.tomatoDuration : this.settings.restDuration,
       };
       
       startTomato(requestData).then(response => {
         this.currentRecord = response.data;
-        this.cycleCount = this.currentRecord.currentCycle || 1;
+        this.isRunning = true;
+        this.isPaused = false;
         this.startCountdown();
-        this.$message.success('番茄钟已开始');
+        this.$message.success(`${this.timerMode === 'focus' ? '专注' : '休息'}已开始`);
       }).catch(() => {
         // 模拟开始
         this.currentRecord = {
           recordId: Date.now(),
-          taskTitle: this.taskForm.taskTitle,
-          description: this.taskForm.description,
-          elapsedTime: 0,
-          currentCycle: this.cycleCount + 1
+          taskTitle: this.timerMode === 'focus' ? '专注学习' : '休息',
+          status: '0',
+          elapsedTime: 0
         };
+        this.isRunning = true;
+        this.isPaused = false;
         this.startCountdown();
-        this.$message.success('番茄钟已开始');
       });
     },
     /** 开始倒计时 */
@@ -625,19 +677,12 @@ export default {
     },
     /** 更新计时器显示 */
     updateTimerDisplay() {
-      switch (this.currentPhase) {
-        case 'focus':
-          this.timeLeft = this.settings.tomatoDuration * 60;
-          this.totalTime = this.settings.tomatoDuration * 60;
-          break;
-        case 'break':
-          this.timeLeft = this.settings.restDuration * 60;
-          this.totalTime = this.settings.restDuration * 60;
-          break;
-        case 'longBreak':
-          this.timeLeft = this.settings.longBreakTime * 60;
-          this.totalTime = this.settings.longBreakTime * 60;
-          break;
+      if (this.timerMode === 'focus') {
+        this.timeLeft = this.settings.tomatoDuration * 60;
+        this.totalTime = this.settings.tomatoDuration * 60;
+      } else {
+        this.timeLeft = this.settings.restDuration * 60;
+        this.totalTime = this.settings.restDuration * 60;
       }
     },
     /** 刷新历史记录 */
@@ -668,6 +713,18 @@ export default {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
+    },
+    /** 格式化秒数 */
+    formatSeconds(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      if (mins === 0) {
+        return `${secs}秒`;
+      } else if (secs === 0) {
+        return `${mins}分钟`;
+      } else {
+        return `${mins}分${secs}秒`;
+      }
     },
     /** 格式化已学习时间 */
     formatLearnedTime(minutes) {

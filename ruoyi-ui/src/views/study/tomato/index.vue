@@ -103,13 +103,11 @@
             <div v-if="currentRecord" class="current-task">
               <el-tag type="success" effect="dark">当前进行中</el-tag>
               <div class="task-info">
-                <h4>{{ currentRecord.taskTitle || '专注学习' }}</h4>
-                <p v-if="currentRecord.description">{{ currentRecord.description }}</p>
+                <h4>{{ currentPlanName }}</h4>
                 <div class="task-stats">
                   <span><i class="el-icon-time"></i> 已专注 {{ formatMinutes(currentRecord.elapsedTime || 0) }}</span>
                   <span><i class="el-icon-timer"></i> 第 {{ currentRecord.currentCycle || 1 }} 个番茄钟</span>
-                  <span v-if="currentRecord.subject"><i class="el-icon-collection"></i> {{ currentRecord.subject }}</span>
-                  <span v-if="currentRecord.difficulty"><i class="el-icon-star-off"></i> 难度: {{ getDifficultyText(currentRecord.difficulty) }}</span>
+                  <span v-if="learnedTime > 0"><i class="el-icon-data-line"></i> 该计划已学习 {{ formatLearnedTime(learnedTime) }}</span>
                 </div>
               </div>
             </div>
@@ -149,8 +147,9 @@
               </el-collapse-item>
               
               <el-collapse-item title="当前任务设置" name="2">
-                <el-form :model="taskForm" label-width="120px">
-                  <el-form-item label="关联学习计划">
+                <div class="task-settings">
+                  <div class="setting-row">
+                    <label class="setting-label">关联学习计划</label>
                     <el-select v-model="taskForm.planId" placeholder="选择关联的学习计划" style="width: 100%;" filterable clearable>
                       <el-option
                         v-for="plan in planOptions"
@@ -159,9 +158,10 @@
                         :value="plan.planId"
                       ></el-option>
                     </el-select>
-                  </el-form-item>
+                  </div>
                   
-                  <el-form-item label="总体时间（分钟）">
+                  <div class="setting-row">
+                    <label class="setting-label">总体时间（分钟）</label>
                     <el-input-number
                       v-model="taskForm.totalTime"
                       :min="1"
@@ -169,10 +169,20 @@
                       :step="5"
                       controls-position="right"
                     ></el-input-number>
-                  </el-form-item>
-                </el-form>
-                
-                <el-button type="success" @click="saveTask">保存任务</el-button>
+                  </div>
+                  
+                  <div class="setting-row learned-time-display" v-if="taskForm.planId">
+                    <label class="setting-label">已学习时间</label>
+                    <div class="learned-value">
+                      <el-tag type="success" size="medium">
+                        <i class="el-icon-time"></i> {{ formatLearnedTime(learnedTime) }}
+                      </el-tag>
+                    </div>
+                    <p class="setting-tip">提示：每完成一个番茄钟自动累计到已学习时间</p>
+                  </div>
+                  
+                  <el-button type="success" @click="saveTask">保存任务</el-button>
+                </div>
               </el-collapse-item>
             </el-collapse>
           </div>
@@ -259,6 +269,9 @@ export default {
         totalTime: 25  // 默认 25 分钟
       },
       
+      // 已学习时间（分钟）
+      learnedTime: 0,
+      
       // 学习计划选项
       planOptions: [],
       
@@ -310,10 +323,16 @@ export default {
     currentPhaseText() {
       const texts = {
         'focus': '专注时间',
-        'break': '短暂休息',
+        'break': '休息时间',
         'longBreak': '长休息时间'
       };
       return texts[this.currentPhase] || '专注时间';
+    },
+    // 获取关联的学习计划名称
+    currentPlanName() {
+      if (!this.taskForm.planId) return '未关联学习计划';
+      const plan = this.planOptions.find(p => p.planId === this.taskForm.planId);
+      return plan ? plan.planName : '未关联学习计划';
     }
   },
   created() {
@@ -480,32 +499,62 @@ export default {
       
       if (this.currentPhase === 'focus') {
         // 完成专注阶段
-        completeTomato(this.currentRecord.recordId).then(() => {
-          this.$message.success(`第${this.cycleCount}个番茄钟完成！`);
-        }).catch(() => {
-          this.$message.success(`第${this.cycleCount}个番茄钟完成！`);
+        const duration = parseInt(this.settings.tomatoDuration) || 25;
+        
+        // 更新已学习时间
+        this.learnedTime += duration;
+        
+        // 播放提示音
+        this.playNotificationSound();
+        
+        // 显示通知
+        this.$notify({
+          title: '专注完成',
+          message: `太棒了！已完成第${this.cycleCount}个番茄钟，休息一下吧~`,
+          type: 'success',
+          duration: 3000
         });
         
-        // 决定下一个阶段
+        completeTomato(this.currentRecord.recordId).then(() => {
+          console.log('番茄钟已完成');
+        }).catch(() => {
+          console.log('本地完成记录');
+        });
+        
+        // 决定下一个阶段 - 自动跳转休息
         if (this.cycleCount % this.settings.longBreakInterval === 0) {
           this.currentPhase = 'longBreak';
+          this.timeLeft = this.settings.longBreakTime * 60;
+          this.totalTime = this.settings.longBreakTime * 60;
+          this.$message.success('已完成 4 个番茄钟，进入长休息时间（15 分钟）');
         } else {
           this.currentPhase = 'break';
+          this.timeLeft = this.settings.restDuration * 60;
+          this.totalTime = this.settings.restDuration * 60;
+          this.$message.success(`准备开始休息（${this.settings.restDuration}分钟）`);
         }
         
         this.cycleCount++;
-        if (this.settings.autoStartBreak) {
-          setTimeout(() => {
-            this.startTimer();
-          }, 2000);
-        }
+        this.updateTimerDisplay();
       } else {
         // 完成休息阶段
         this.currentPhase = 'focus';
-        this.$message.info('休息结束，准备开始下一个番茄钟');
+        this.timeLeft = this.settings.tomatoDuration * 60;
+        this.totalTime = this.settings.tomatoDuration * 60;
+        
+        // 播放提示音
+        this.playNotificationSound();
+        
+        // 显示通知
+        this.$notify({
+          title: '休息结束',
+          message: '休息好了吗？准备开始下一个番茄钟吧！',
+          type: 'info',
+          duration: 3000
+        });
+        
+        this.updateTimerDisplay();
       }
-      
-      this.updateTimerDisplay();
     },
     /** 暂停计时器 */
     pauseTimer() {
@@ -551,6 +600,29 @@ export default {
         this.timer = null;
       }
     },
+    /** 播放提示音 */
+    playNotificationSound() {
+      // 简单的提示音，使用 Audio API
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+      } catch (e) {
+        console.log('音频播放失败:', e);
+      }
+    },
     /** 更新计时器显示 */
     updateTimerDisplay() {
       switch (this.currentPhase) {
@@ -590,6 +662,15 @@ export default {
     },
     /** 格式化分钟 */
     formatMinutes(minutes) {
+      if (minutes < 60) {
+        return `${minutes}分钟`;
+      }
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
+    },
+    /** 格式化已学习时间 */
+    formatLearnedTime(minutes) {
       if (minutes < 60) {
         return `${minutes}分钟`;
       }
@@ -828,6 +909,30 @@ export default {
       font-size: 12px;
       color: #909399;
       margin-top: 5px;
+    }
+    
+    .task-settings {
+      padding: 10px 0;
+      
+      .setting-row {
+        margin-bottom: 20px;
+        
+        .setting-label {
+          display: block;
+          font-size: 14px;
+          color: #606266;
+          margin-bottom: 10px;
+        }
+        
+        .learned-value {
+          margin-top: 5px;
+          
+          .el-tag {
+            font-size: 16px;
+            padding: 8px 15px;
+          }
+        }
+      }
     }
   }
   

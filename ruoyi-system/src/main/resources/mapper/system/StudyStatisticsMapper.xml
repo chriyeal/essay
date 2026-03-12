@@ -104,15 +104,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         limit 7
     </select>
     
-    <select id="selectStudySummaryByUserId" parameterType="Long" resultMap="StudyStatisticsResult">
+    <select id="selectStudySummaryByUserId" parameterType="Long" resultType="java.util.HashMap">
         select 
-            user_id,
-            sum(total_study_time) as plan_time_spent,
-            sum(tomato_count) as tomato_time_spent,
-            sum(total_study_time) as total_study_time,
-            sum(completed_plans) as completed_plans
-        from study_statistics 
-        where user_id = #{userId}
-        group by user_id
+            (select count(*) from study_plan where user_id = #{userId} and is_template = 0 and start_date = CURDATE()) as plan_count,
+            (select coalesce(sum(actual_hours), 0) from study_plan where user_id = #{userId} and is_template = 0 and start_date = CURDATE()) as study_hours,
+            (select coalesce(sum(completed_plans), 0) from study_statistics where user_id = #{userId} and study_date = CURDATE()) as completed_tasks
     </select>
 </mapper>

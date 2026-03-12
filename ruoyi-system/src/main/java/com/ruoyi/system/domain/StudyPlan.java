@@ -77,11 +77,15 @@ public class StudyPlan extends BaseEntity
     @Excel(name = "预计学习时长")
     private BigDecimal estimatedHours;
 
-    /** 实际学习时长(小时) */
+    /** 实际学习时长 (小时) */
     @Excel(name = "实际学习时长")
     private BigDecimal actualHours;
-
-    /** 进度百分比(0-100) */
+    
+    /** 总天数（多日计划的总天数） */
+    @Excel(name = "总天数")
+    private Integer totalDays;
+    
+    /** 进度百分比 (0-100) */
     @Excel(name = "进度")
     private Integer progress;
 
@@ -244,6 +248,15 @@ public class StudyPlan extends BaseEntity
     {
         return actualHours;
     }
+    public void setTotalDays(Integer totalDays) 
+    {
+        this.totalDays = totalDays;
+    }
+
+    public Integer getTotalDays() 
+    {
+        return totalDays;
+    }
     public void setSubject(String subject) 
     {
         this.subject = subject;
@@ -336,6 +349,7 @@ public class StudyPlan extends BaseEntity
             .append("learningGoals", getLearningGoals())
             .append("estimatedHours", getEstimatedHours())
             .append("actualHours", getActualHours())
+            .append("totalDays", getTotalDays())
             .append("progress", getProgress())
             .append("totalTasks", getTotalTasks())
             .append("completedTasks", getCompletedTasks())

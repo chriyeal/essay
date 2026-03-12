@@ -140,11 +140,10 @@ public class StudyStatisticsController extends BaseController
     /**
      * 查询用户学习统计汇总
      */
-    @PreAuthorize("@ss.hasPermi('study:statistics:query')")
     @GetMapping("/summary")
     public AjaxResult getStudySummary()
     {
-        StudyStatistics summary = studyStatisticsService.selectStudySummaryByUserId(SecurityUtils.getUserId());
+        java.util.Map<String, Object> summary = studyStatisticsService.selectStudySummaryByUserId(SecurityUtils.getUserId());
         return AjaxResult.success(summary);
     }
 

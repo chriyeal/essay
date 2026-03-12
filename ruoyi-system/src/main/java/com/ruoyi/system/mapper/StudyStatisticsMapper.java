@@ -79,8 +79,8 @@ public interface StudyStatisticsMapper
     /**
      * 查询用户学习统计汇总
      * 
-     * @param userId 用户ID
-     * @return 学习统计数据
+     * @param userId 用户 ID
+     * @return 学习统计数据（Map）
      */
-    public StudyStatistics selectStudySummaryByUserId(Long userId);
+    public java.util.Map<String, Object> selectStudySummaryByUserId(Long userId);
 }

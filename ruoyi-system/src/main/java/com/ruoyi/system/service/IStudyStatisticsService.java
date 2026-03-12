@@ -79,10 +79,10 @@ public interface IStudyStatisticsService
     /**
      * 查询用户学习统计汇总
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 学习统计数据
      */
-    public StudyStatistics selectStudySummaryByUserId(Long userId);
+    public java.util.Map<String, Object> selectStudySummaryByUserId(Long userId);
 
     /**
      * 更新用户当日学习统计数据

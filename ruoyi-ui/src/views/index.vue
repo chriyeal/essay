@@ -169,13 +169,16 @@ export default {
     // 加载学习统计数据
     loadStudyStatistics() {
       getStudyStatistics().then(response => {
-        this.studyStats = response.data || {
-          planCount: 0,
-          studyHours: 0,
-          completedTasks: 0
-        }
-      }).catch(() => {
-        // 如果获取失败，显示0而不是预设值
+        const stats = response.data || {};
+        this.studyStats = {
+          planCount: stats.plan_count || 0,
+          studyHours: Math.floor((stats.study_hours || 0) / 60), // 分钟转换为小时
+          completedTasks: stats.completed_tasks || 0
+        };
+        console.log('首页统计数据:', this.studyStats);
+      }).catch(error => {
+        console.error('获取首页统计数据失败:', error);
+        // 如果获取失败，显示 0
         this.studyStats = {
           planCount: 0,
           studyHours: 0,

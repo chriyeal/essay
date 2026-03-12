@@ -7,8 +7,8 @@
     </div>
 
     <!-- 统计卡片 - 添加点击事件 -->
-    <el-row :gutter="20" class="stats-row">
-      <el-col :xs="24" :sm="12" :md="6" v-for="stat in statistics" :key="stat.key">
+    <el-row :gutter="20" class="stats-row" type="flex" justify="center">
+      <el-col :xs="24" :sm="8" :md="8" v-for="stat in statistics" :key="stat.key">
         <div class="stat-card" :style="{ borderColor: stat.color }" @click="filterByStatus(stat.key)">
           <div class="stat-icon" :style="{ backgroundColor: stat.color }">
             <i :class="stat.icon"></i>
@@ -30,11 +30,17 @@
         <el-button type="warning" icon="el-icon-refresh" @click="getList">刷新</el-button>
         
         <!-- 计划类型切换 -->
-        <el-radio-group v-model="planTypeFilter" @change="handlePlanTypeChange" style="margin-left: 20px;">
-          <el-radio-button label="overall">总体计划</el-radio-button>
-          <el-radio-button label="today">今日计划</el-radio-button>
-          <el-radio-button label="all">全部计划</el-radio-button>
-        </el-radio-group>
+        <div style="margin-left: 20px; display: inline-block;">
+          <el-button 
+            :type="planTypeFilter === 'overall' ? 'primary' : ''" 
+            @click="setPlanType('overall')">多日计划</el-button>
+          <el-button 
+            :type="planTypeFilter === 'today' ? 'primary' : ''" 
+            @click="setPlanType('today')">今日计划</el-button>
+          <el-button 
+            :type="planTypeFilter === 'all' ? 'primary' : ''" 
+            @click="setPlanType('all')">全部计划</el-button>
+        </div>
       </div>
       
       <div class="toolbar-right">
@@ -118,7 +124,6 @@
             :stroke-width="10"
             text-inside
           ></el-progress>
-          <div class="progress-text">{{ scope.row.completedTasks }}/{{ scope.row.totalTasks }} 任务完成</div>
         </template>
       </el-table-column>
       
@@ -177,10 +182,20 @@
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-row>
           <el-col :span="12">
+            <el-form-item label="计划类型" prop="planType">
+              <el-select v-model="form.planType" placeholder="请选择计划类型" style="width: 100%;" @change="handlePlanTypeChange">
+                <el-option label="多日计划" value="overall"></el-option>
+                <el-option label="今日计划" value="today"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="计划名称" prop="planName">
               <el-input v-model="form.planName" placeholder="请输入计划名称" />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row>
           <el-col :span="12">
             <el-form-item label="学科" prop="subject">
               <el-select v-model="form.subject" placeholder="请选择学科" style="width: 100%;">
@@ -196,6 +211,22 @@
                 <el-option label="计算机" value="计算机"></el-option>
                 <el-option label="其他" value="其他"></el-option>
               </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <!-- 多日计划才显示天数选择 -->
+        <el-row v-if="form.planType === 'overall'">
+          <el-col :span="24">
+            <el-form-item label="计划天数" prop="totalDays">
+              <el-input-number
+                v-model="form.totalDays"
+                :min="1"
+                :max="maxDays"
+                controls-position="right"
+                style="width: 100%;"
+              ></el-input-number>
+              <span style="margin-left: 10px; color: #999;">（自动计算：{{ calculatedDays }} 天，可改少不可改多）</span>
             </el-form-item>
           </el-col>
         </el-row>
@@ -222,7 +253,8 @@
           </el-col>
         </el-row>
         
-        <el-row>
+        <!-- 多日计划才显示日期选择 -->
+        <el-row v-if="form.planType === 'overall'">
           <el-col :span="12">
             <el-form-item label="开始时间" prop="startDate">
               <el-date-picker
@@ -341,7 +373,7 @@
 </template>
 
 <script>
-import { listStudyPlan, getStudyPlan, delStudyPlan, addStudyPlan, updateStudyPlan, completeStudyPlan, getPlanStatistics, generateSmartPlan } from "@/api/study/plan";
+import { listStudyPlan, getStudyPlan, delStudyPlan, addStudyPlan, updateStudyPlan, completeStudyPlan, getPlanStatistics, getPlanSummary, generateSmartPlan } from "@/api/study/plan";
 
 export default {
   name: "StudyPlan",
@@ -373,11 +405,14 @@ export default {
       statistics: [
         { key: 'total', label: '总计划数', labelEn: 'Total Plans', value: 0, icon: 'el-icon-notebook-2', color: '#409EFF' },
         { key: 'ongoing', label: '进行中', labelEn: 'Ongoing', value: 0, icon: 'el-icon-loading', color: '#67C23A' },
-        { key: 'completed', label: '已完成', labelEn: 'Completed', value: 0, icon: 'el-icon-check', color: '#E6A23C' },
-        { key: 'templates', label: '模板数', labelEn: 'Templates', value: 0, icon: 'el-icon-copy-document', color: '#F56C6C' }
+        { key: 'completed', label: '已完成', labelEn: 'Completed', value: 0, icon: 'el-icon-check', color: '#E6A23C' }
       ],
       // 计划类型筛选
       planTypeFilter: 'all',
+      // 最大天数限制
+      maxDays: 365,
+      // 计算出的天数
+      calculatedDays: 0,
       // 查询参数
       queryParams: {
         pageNum: 1,
@@ -432,35 +467,49 @@ export default {
     };
   },
   created() {
+    // 初始化查询参数与筛选状态一致
+    this.queryParams.planType = null; // 'all' 对应 null
     this.getList();
     this.getStatistics();
+  },
+  watch: {
+    // 监听日期变化自动计算天数
+    'form.startDate': function() {
+      this.calculateDays();
+    },
+    'form.endDate': function() {
+      this.calculateDays();
+    }
   },
   methods: {
     /** 查询学习计划列表 */
     getList() {
+      console.log('===== getList() 被调用 =====');
+      console.log('当前 queryParams:', JSON.stringify(this.queryParams));
       this.loading = true;
       listStudyPlan(this.queryParams).then(response => {
+        console.log('后端返回数据:', response);
         this.planList = response.rows;
         this.total = response.total;
+        console.log('列表已更新，记录数:', response.rows.length);
+        this.loading = false;
+      }).catch(error => {
+        console.error('查询失败:', error);
         this.loading = false;
       });
     },
     /** 查询统计信息 */
     getStatistics() {
+      console.log('开始获取统计数据...');
       getPlanSummary().then(response => {
+        console.log('统计数据响应:', response.data);
         const stats = response.data || {};
         this.statistics[0].value = stats.totalPlans || 0;
         this.statistics[1].value = stats.ongoingPlans || 0;
         this.statistics[2].value = stats.completedPlans || 0;
-        this.statistics[3].value = stats.templatePlans || 0;
-      }).catch(() => {
-        // 使用默认值
-        this.statistics = [
-          { key: 'total', label: '总计划数', labelEn: 'Total Plans', value: 0, icon: 'el-icon-notebook-2', color: '#409EFF' },
-          { key: 'ongoing', label: '进行中', labelEn: 'Ongoing', value: 0, icon: 'el-icon-loading', color: '#67C23A' },
-          { key: 'completed', label: '已完成', labelEn: 'Completed', value: 0, icon: 'el-icon-check', color: '#E6A23C' },
-          { key: 'templates', label: '模板数', labelEn: 'Templates', value: 0, icon: 'el-icon-copy-document', color: '#F56C6C' }
-        ];
+        console.log('统计数据已更新:', this.statistics);
+      }).catch(error => {
+        console.error('获取统计数据失败:', error);
       });
     },
     /** 根据状态筛选计划 */
@@ -482,23 +531,31 @@ export default {
       this.getList();
     },
     /** 计划类型改变 */
-    handlePlanTypeChange() {
+    setPlanType(type) {
+      console.log('===== 计划类型切换 =====');
+      console.log('点击的类型:', type);
+      this.planTypeFilter = type;
       // 清空之前的筛选条件
       this.queryParams.status = null;
       this.queryParams.isTemplate = null;
       
-      if (this.planTypeFilter === 'overall') {
-        // 总体计划：未完成的计划
+      if (type === 'overall') {
+        // 多日计划：未完成的计划
         this.queryParams.planType = 'overall';
-      } else if (this.planTypeFilter === 'today') {
+        console.log('设置 planType 为 overall');
+      } else if (type === 'today') {
         // 今日计划：今天的计划
         this.queryParams.planType = 'today';
+        console.log('设置 planType 为 today');
       } else {
         // 全部计划：包括已完成和未完成的所有计划
         this.queryParams.planType = null;
+        console.log('设置 planType 为 null');
       }
       
       this.queryParams.pageNum = 1;
+      console.log('最终查询参数:', JSON.stringify(this.queryParams));
+      console.log('开始调用 getList()');
       this.getList();
     },
     // 取消按钮
@@ -516,6 +573,7 @@ export default {
       this.form = {
         planId: null,
         planName: null,
+        planType: 'overall',  // 默认为多日计划
         subject: null,
         priority: "1",
         difficulty: 2,
@@ -523,8 +581,10 @@ export default {
         endDate: null,
         description: null,
         learningGoals: null,
-        isTemplate: 0  // 改为数字类型
+        totalDays: 0,
+        isTemplate: 0
       };
+      this.calculatedDays = 0;
       this.resetForm("form");
     },
     // 生成表单重置
@@ -649,6 +709,9 @@ export default {
         const plans = response.data || [];
         if (plans.length > 0) {
           this.$modal.msgSuccess('已生成' + plans.length + '个学习计划');
+          // 切换到今日计划标签
+          this.planTypeFilter = 'today';
+          this.handlePlanTypeChange();
           this.getList();
           this.getStatistics();
         } else {
@@ -658,6 +721,44 @@ export default {
       }).catch(() => {
         this.loading = false;
       });
+    },
+    /** 处理计划类型变化 */
+    handlePlanTypeChange() {
+      // 如果是今日计划，设置为今天的日期
+      if (this.form.planType === 'today') {
+        const today = new Date();
+        const dateStr = today.getFullYear() + '-' + 
+                       String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                       String(today.getDate()).padStart(2, '0');
+        this.form.startDate = dateStr;
+        this.form.endDate = dateStr;
+        this.form.totalDays = 1;
+        this.calculatedDays = 1;
+      } else {
+        // 多日计划，清空日期
+        this.form.startDate = null;
+        this.form.endDate = null;
+        this.form.totalDays = 0;
+        this.calculatedDays = 0;
+      }
+    },
+    /** 计算天数 */
+    calculateDays() {
+      if (this.form.startDate && this.form.endDate) {
+        const start = new Date(this.form.startDate);
+        const end = new Date(this.form.endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 包含首尾两天
+        this.calculatedDays = diffDays;
+        
+        // 如果 totalDays 为 0 或大于计算天数，则设置为计算天数
+        if (!this.form.totalDays || this.form.totalDays > diffDays) {
+          this.form.totalDays = diffDays;
+        }
+        
+        // 设置 maxDays 为计算天数（只能改少不能改多）
+        this.maxDays = diffDays;
+      }
     },
     /** 提交生成 */
     submitGenerate() {

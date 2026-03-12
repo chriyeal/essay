@@ -119,164 +119,60 @@
           <div class="settings-panel">
             <el-collapse v-model="activeNames">
               <el-collapse-item title="番茄钟设置" name="1">
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="专注时间">
-                      <el-input-number
-                        v-model="settings.focusTime"
-                        :min="1"
-                        :max="60"
-                        :step="5"
-                        controls-position="right"
-                      ></el-input-number>
-                      <span class="unit">分钟</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="休息时间">
-                      <el-input-number
-                        v-model="settings.breakTime"
-                        :min="1"
-                        :max="30"
-                        :step="1"
-                        controls-position="right"
-                      ></el-input-number>
-                      <span class="unit">分钟</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                
-                <el-row :gutter="20">
-                  <el-col :span="12">
-                    <el-form-item label="长休息时间">
-                      <el-input-number
-                        v-model="settings.longBreakTime"
-                        :min="5"
-                        :max="60"
-                        :step="5"
-                        controls-position="right"
-                      ></el-input-number>
-                      <span class="unit">分钟</span>
-                    </el-form-item>
-                  </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="长休息间隔">
-                      <el-input-number
-                        v-model="settings.longBreakInterval"
-                        :min="2"
-                        :max="10"
-                        :step="1"
-                        controls-position="right"
-                      ></el-input-number>
-                      <span class="unit">个番茄钟</span>
-                    </el-form-item>
-                  </el-col>
-                </el-row>
-                
-                <el-form-item label="自动开始休息">
-                  <el-switch
-                    v-model="settings.autoStartBreak"
-                    active-text="开启"
-                    inactive-text="关闭"
-                  ></el-switch>
-                </el-form-item>
-                
-                <!-- 手动时间设置 -->
-                <el-form-item label="专注时间">
-                  <el-slider
-                    v-model="settings.tomatoDuration"
-                    :min="1"
-                    :max="60"
-                    :step="1"
-                    show-input
-                    show-stops
-                    range
-                  ></el-slider>
-                  <p class="setting-tip">设置专注时间：{{ settings.tomatoDuration }} 分钟</p>
-                </el-form-item>
-                
-                <el-form-item label="休息时间">
-                  <el-slider
-                    v-model="settings.restDuration"
-                    :min="1"
-                    :max="30"
-                    :step="1"
-                    show-input
-                    show-stops
-                    range
-                  ></el-slider>
-                  <p class="setting-tip">设置休息时间：{{ settings.restDuration }} 分钟</p>
-                </el-form-item>
-                
-                <el-button type="primary" @click="saveSettings">保存设置</el-button>
+                <div class="settings-content">
+                  <div class="setting-item">
+                    <label class="setting-label">专注时间（分钟）</label>
+                    <el-slider
+                      v-model="settings.tomatoDuration"
+                      :min="1"
+                      :max="60"
+                      :step="1"
+                      show-input
+                    ></el-slider>
+                    <p class="setting-tip">提示：拖动滑块设置 1-60 分钟的专注时间</p>
+                  </div>
+                  
+                  <div class="setting-item">
+                    <label class="setting-label">休息时间（分钟）</label>
+                    <el-slider
+                      v-model="settings.restDuration"
+                      :min="1"
+                      :max="60"
+                      :step="1"
+                      show-input
+                    ></el-slider>
+                    <p class="setting-tip">提示：拖动滑块设置 1-60 分钟的休息时间</p>
+                  </div>
+                  
+                  <el-button type="primary" @click="saveSettings">保存设置</el-button>
+                </div>
               </el-collapse-item>
               
               <el-collapse-item title="当前任务设置" name="2">
-                <el-form>
-                  <el-form-item label="任务标题">
-                    <el-input
-                      v-model="taskForm.taskTitle"
-                      placeholder="请输入当前学习任务"
-                    ></el-input>
-                  </el-form-item>
-                  
-                  <el-row>
-                    <el-col :span="12">
-                      <el-form-item label="学科">
-                        <el-select v-model="taskForm.subject" placeholder="选择学科" style="width: 100%;">
-                          <el-option label="数学" value="数学"></el-option>
-                          <el-option label="英语" value="英语"></el-option>
-                          <el-option label="语文" value="语文"></el-option>
-                          <el-option label="物理" value="物理"></el-option>
-                          <el-option label="化学" value="化学"></el-option>
-                          <el-option label="生物" value="生物"></el-option>
-                          <el-option label="历史" value="历史"></el-option>
-                          <el-option label="地理" value="地理"></el-option>
-                          <el-option label="政治" value="政治"></el-option>
-                          <el-option label="计算机" value="计算机"></el-option>
-                          <el-option label="其他" value="其他"></el-option>
-                        </el-select>
-                      </el-form-item>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-form-item label="难度">
-                        <el-rate
-                          v-model="taskForm.difficulty"
-                          :max="3"
-                          show-text
-                          :texts="['简单', '中等', '困难']"
-                        ></el-rate>
-                      </el-form-item>
-                    </el-col>
-                  </el-row>
-                  
-                  <el-form-item label="任务描述">
-                    <el-input
-                      v-model="taskForm.description"
-                      type="textarea"
-                      :rows="3"
-                      placeholder="简要描述学习内容"
-                    ></el-input>
-                  </el-form-item>
-                  
-                  <el-form-item label="关联计划">
-                    <el-select
-                      v-model="taskForm.planId"
-                      placeholder="选择关联的学习计划"
-                      clearable
-                      style="width: 100%;"
-                    >
+                <el-form :model="taskForm" label-width="120px">
+                  <el-form-item label="关联学习计划">
+                    <el-select v-model="taskForm.planId" placeholder="选择关联的学习计划" style="width: 100%;" filterable clearable>
                       <el-option
                         v-for="plan in planOptions"
                         :key="plan.planId"
-                        :label="plan.title"
+                        :label="plan.planName"
                         :value="plan.planId"
                       ></el-option>
                     </el-select>
                   </el-form-item>
                   
-                  <el-button type="success" @click="saveTask">保存任务</el-button>
+                  <el-form-item label="总体时间（分钟）">
+                    <el-input-number
+                      v-model="taskForm.totalTime"
+                      :min="1"
+                      :max="999"
+                      :step="5"
+                      controls-position="right"
+                    ></el-input-number>
+                  </el-form-item>
                 </el-form>
+                
+                <el-button type="success" @click="saveTask">保存任务</el-button>
               </el-collapse-item>
             </el-collapse>
           </div>
@@ -333,48 +229,6 @@
             </div>
           </div>
         </el-card>
-        
-        <!-- 效率分析 -->
-        <el-card class="analysis-section" style="margin-top: 20px;">
-          <div slot="header" class="clearfix">
-            <span class="card-title">效率分析</span>
-          </div>
-          
-          <div class="efficiency-chart">
-            <div class="chart-placeholder">
-              <i class="el-icon-data-analysis"></i>
-              <p>效率趋势图</p>
-              <p class="sub-text">(功能待完善)</p>
-            </div>
-          </div>
-          
-          <div class="efficiency-stats">
-            <div class="stat-row">
-              <span class="stat-label">今日效率</span>
-              <el-progress
-                :percentage="efficiency.today"
-                :status="getEfficiencyStatus(efficiency.today)"
-                :stroke-width="8"
-              ></el-progress>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">本周平均</span>
-              <el-progress
-                :percentage="efficiency.weekly"
-                :status="getEfficiencyStatus(efficiency.weekly)"
-                :stroke-width="8"
-              ></el-progress>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">本月平均</span>
-              <el-progress
-                :percentage="efficiency.monthly"
-                :status="getEfficiencyStatus(efficiency.monthly)"
-                :stroke-width="8"
-              ></el-progress>
-            </div>
-          </div>
-        </el-card>
       </el-col>
     </el-row>
   </div>
@@ -389,21 +243,11 @@ export default {
   data() {
     return {
       // 计时器相关
-      timeLeft: 25 * 60, // 默认25分钟
+      timeLeft: 25 * 60, // 默认 25 分钟
       totalTime: 25 * 60, // 总时间
-      isRunning: false,
-      isPaused: false,
-      timer: null,
-      currentPhase: 'focus', // focus, break, longBreak
-      cycleCount: 0,
-      
-      // 当前记录
-      currentRecord: null,
-      
-      // 设置
       settings: {
-        tomatoDuration: 25, // 专注时间，默认25分钟
-        restDuration: 5,    // 休息时间，默认5分钟
+        tomatoDuration: 25, // 专注时间，默认 25 分钟
+        restDuration: 10,   // 休息时间，默认 10 分钟
         longBreakTime: 15,
         longBreakInterval: 4,
         autoStartBreak: true
@@ -411,15 +255,22 @@ export default {
       
       // 任务表单
       taskForm: {
-        taskTitle: '',
-        description: '',
-        subject: '',
-        difficulty: 2,
-        planId: null
+        planId: null,
+        totalTime: 25  // 默认 25 分钟
       },
       
       // 学习计划选项
       planOptions: [],
+      
+      // 当前记录
+      currentRecord: null,
+      
+      // 计时器状态
+      isRunning: false,
+      isPaused: false,
+      timer: null,
+      currentPhase: 'focus',
+      cycleCount: 0,
       
       // 统计数据
       statistics: [
@@ -439,16 +290,16 @@ export default {
       // 历史记录
       historyRecords: [],
       
-      // 效率分析
-      efficiency: {
-        today: 85,
-        weekly: 78,
-        monthly: 82
-      },
-      
       // 折叠面板
       activeNames: ['1'],
     };
+  },
+  watch: {
+    'settings.tomatoDuration'(newVal) {
+      if (!this.isRunning && !this.isPaused) {
+        this.updateTimerDuration();
+      }
+    }
   },
   computed: {
     timerState() {
@@ -466,6 +317,8 @@ export default {
     }
   },
   created() {
+    // 初始化时间设置
+    this.updateTimerDuration();
     this.loadStatistics();
     this.loadTodayRecords();
     this.loadPlans();
@@ -553,6 +406,13 @@ export default {
         this.planOptions = response.rows || [];
       });
     },
+    /** 更新计时器时长 */
+    updateTimerDuration() {
+      const duration = parseInt(this.settings.tomatoDuration) || 25;
+      this.timeLeft = duration * 60;
+      this.totalTime = duration * 60;
+      console.log('时间已更新:', this.timeLeft, '秒');
+    },
     /** 加载设置 */
     loadSettings() {
       const savedSettings = localStorage.getItem('tomatoSettings');
@@ -564,32 +424,19 @@ export default {
     /** 保存设置 */
     saveSettings() {
       localStorage.setItem('tomatoSettings', JSON.stringify(this.settings));
-      this.updateTimerDisplay();
+      this.updateTimerDuration();
       this.$message.success('设置已保存');
     },
     /** 保存任务 */
     saveTask() {
-      if (!this.taskForm.taskTitle.trim()) {
-        this.$message.warning('请输入任务标题');
-        return;
-      }
-      // 这里应该调用API保存任务信息
+      // 直接保存，不做验证
       this.$message.success('任务信息已保存');
     },
     /** 开始计时器 */
     startTimer() {
-      if (!this.taskForm.taskTitle.trim()) {
-        this.$message.warning('请先设置当前任务');
-        return;
-      }
-      
       const requestData = {
-        taskTitle: this.taskForm.taskTitle,
-        description: this.taskForm.description,
         planId: this.taskForm.planId,
-        focusTime: this.settings.focusTime,
-        breakTime: this.settings.breakTime,
-        longBreakTime: this.settings.longBreakTime
+        totalTime: this.taskForm.totalTime,
       };
       
       startTomato(requestData).then(response => {
@@ -774,12 +621,6 @@ export default {
         '3': '已放弃'
       };
       return texts[status] || '未知';
-    },
-    // 获取效率状态
-    getEfficiencyStatus(value) {
-      if (value >= 80) return 'success';
-      if (value >= 60) return 'warning';
-      return 'exception';
     }
   }
 };
@@ -965,15 +806,28 @@ export default {
     }
     
     .settings-panel {
-      .el-form-item {
-        display: flex;
-        align-items: center;
-        
-        .unit {
-          margin-left: 10px;
-          color: #999;
-        }
-      }
+      margin-top: 20px;
+    }
+    
+    .settings-content {
+      padding: 10px 0;
+    }
+
+    .setting-item {
+      margin-bottom: 20px;
+    }
+
+    .setting-label {
+      display: block;
+      font-size: 14px;
+      color: #606266;
+      margin-bottom: 10px;
+    }
+
+    .setting-tip {
+      font-size: 12px;
+      color: #909399;
+      margin-top: 5px;
     }
   }
   

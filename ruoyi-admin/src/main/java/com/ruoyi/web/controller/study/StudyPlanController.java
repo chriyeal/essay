@@ -39,21 +39,23 @@ public class StudyPlanController extends BaseController
     /**
      * 查询学习计划列表
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:list')")
     @GetMapping("/list")
     public TableDataInfo list(StudyPlan studyPlan)
     {
+        System.out.println("=== 查询学习计划列表 ===");
+        System.out.println("planType: " + studyPlan.getPlanType());
+        System.out.println("userId: " + SecurityUtils.getUserId());
         // 只能查看自己的学习计划
         studyPlan.setUserId(SecurityUtils.getUserId());
         startPage();
         List<StudyPlan> list = studyPlanService.selectStudyPlanList(studyPlan);
+        System.out.println("返回记录数: " + list.size());
         return getDataTable(list);
     }
 
     /**
      * 导出学习计划列表
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:export')")
     @Log(title = "学习计划", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
     public void export(HttpServletResponse response, StudyPlan studyPlan)
@@ -67,7 +69,6 @@ public class StudyPlanController extends BaseController
     /**
      * 获取学习计划详细信息
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:query')")
     @GetMapping(value = "/{planId}")
     public AjaxResult getInfo(@PathVariable("planId") Long planId)
     {
@@ -82,7 +83,6 @@ public class StudyPlanController extends BaseController
     /**
      * 新增学习计划
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:add')")
     @Log(title = "学习计划", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody StudyPlan studyPlan)
@@ -94,7 +94,6 @@ public class StudyPlanController extends BaseController
     /**
      * 修改学习计划
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:edit')")
     @Log(title = "学习计划", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody StudyPlan studyPlan)
@@ -110,8 +109,6 @@ public class StudyPlanController extends BaseController
     /**
      * 删除学习计划
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:remove')")
-    @Log(title = "学习计划", businessType = BusinessType.DELETE)
 	@DeleteMapping("/{planIds}")
     public AjaxResult remove(@PathVariable Long[] planIds)
     {
@@ -128,8 +125,6 @@ public class StudyPlanController extends BaseController
     /**
      * 标记学习计划为已完成
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:complete')")
-    @Log(title = "学习计划", businessType = BusinessType.UPDATE)
     @PutMapping("/complete/{planId}")
     public AjaxResult complete(@PathVariable Long planId, @RequestBody(required = false) Double actualHours)
     {
@@ -144,8 +139,6 @@ public class StudyPlanController extends BaseController
     /**
      * 生成每日学习计划
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:generate')")
-    @Log(title = "学习计划", businessType = BusinessType.OTHER)
     @PostMapping("/generate")
     public AjaxResult generateDailyPlan()
     {
@@ -156,7 +149,6 @@ public class StudyPlanController extends BaseController
     /**
      * 查询今日学习计划
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:list')")
     @GetMapping("/today")
     public AjaxResult getTodayPlans()
     {
@@ -167,7 +159,6 @@ public class StudyPlanController extends BaseController
     /**
      * 统计学习计划完成情况
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:query')")
     @GetMapping("/statistics")
     public AjaxResult getPlanStatistics()
     {
@@ -178,7 +169,6 @@ public class StudyPlanController extends BaseController
     /**
      * 获取学习计划统计汇总
      */
-    @PreAuthorize("@ss.hasPermi('study:plan:query')")
     @GetMapping("/summary")
     public AjaxResult getSummary()
     {

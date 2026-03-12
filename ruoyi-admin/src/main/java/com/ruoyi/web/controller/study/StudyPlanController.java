@@ -174,4 +174,15 @@ public class StudyPlanController extends BaseController
         int completedCount = studyPlanService.countCompletedPlansByUserId(SecurityUtils.getUserId());
         return AjaxResult.success(completedCount);
     }
+
+    /**
+     * 获取学习计划统计汇总
+     */
+    @PreAuthorize("@ss.hasPermi('study:plan:query')")
+    @GetMapping("/summary")
+    public AjaxResult getSummary()
+    {
+        java.util.Map<String, Object> summary = studyPlanService.getPlanSummary(SecurityUtils.getUserId());
+        return AjaxResult.success(summary);
+    }
 }

@@ -59,6 +59,14 @@ export function getPlanStatistics() {
   })
 }
 
+// 获取计划统计汇总
+export function getPlanSummary() {
+  return request({
+    url: '/study/plan/summary',
+    method: 'get'
+  })
+}
+
 // 生成智能学习计划
 export function generateSmartPlan(data) {
   return request({

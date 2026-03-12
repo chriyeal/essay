@@ -447,7 +447,7 @@ export default {
     },
     /** 查询统计信息 */
     getStatistics() {
-      getPlanStatistics().then(response => {
+      getPlanSummary().then(response => {
         const stats = response.data || {};
         this.statistics[0].value = stats.totalPlans || 0;
         this.statistics[1].value = stats.ongoingPlans || 0;
@@ -456,23 +456,23 @@ export default {
       }).catch(() => {
         // 使用默认值
         this.statistics = [
-          { key: 'total', label: '总计划数', labelEn: 'Total Plans', value: 12, icon: 'el-icon-notebook-2', color: '#409EFF' },
-          { key: 'ongoing', label: '进行中', labelEn: 'Ongoing', value: 8, icon: 'el-icon-loading', color: '#67C23A' },
-          { key: 'completed', label: '已完成', labelEn: 'Completed', value: 4, icon: 'el-icon-check', color: '#E6A23C' },
-          { key: 'templates', label: '模板数', labelEn: 'Templates', value: 3, icon: 'el-icon-copy-document', color: '#F56C6C' }
+          { key: 'total', label: '总计划数', labelEn: 'Total Plans', value: 0, icon: 'el-icon-notebook-2', color: '#409EFF' },
+          { key: 'ongoing', label: '进行中', labelEn: 'Ongoing', value: 0, icon: 'el-icon-loading', color: '#67C23A' },
+          { key: 'completed', label: '已完成', labelEn: 'Completed', value: 0, icon: 'el-icon-check', color: '#E6A23C' },
+          { key: 'templates', label: '模板数', labelEn: 'Templates', value: 0, icon: 'el-icon-copy-document', color: '#F56C6C' }
         ];
       });
     },
     /** 根据状态筛选计划 */
     filterByStatus(statusKey) {
       const statusMap = {
-        'total': '',
+        'total': null,
         'ongoing': '0',
         'completed': '1',
-        'templates': ''
+        'templates': null
       };
       
-      this.queryParams.status = statusMap[statusKey] || '';
+      this.queryParams.status = statusMap[statusKey] || null;
       if (statusKey === 'templates') {
         this.queryParams.isTemplate = 1;
       } else {
@@ -483,7 +483,21 @@ export default {
     },
     /** 计划类型改变 */
     handlePlanTypeChange() {
-      this.queryParams.planType = this.planTypeFilter === 'all' ? null : this.planTypeFilter;
+      // 清空之前的筛选条件
+      this.queryParams.status = null;
+      this.queryParams.isTemplate = null;
+      
+      if (this.planTypeFilter === 'overall') {
+        // 总体计划：未完成的计划
+        this.queryParams.planType = 'overall';
+      } else if (this.planTypeFilter === 'today') {
+        // 今日计划：今天的计划
+        this.queryParams.planType = 'today';
+      } else {
+        // 全部计划：包括已完成和未完成的所有计划
+        this.queryParams.planType = null;
+      }
+      
       this.queryParams.pageNum = 1;
       this.getList();
     },
@@ -509,7 +523,7 @@ export default {
         endDate: null,
         description: null,
         learningGoals: null,
-        isTemplate: false
+        isTemplate: 0  // 改为数字类型
       };
       this.resetForm("form");
     },
@@ -560,15 +574,19 @@ export default {
     submitForm() {
       this.$refs["form"].validate(valid => {
         if (valid) {
+          // 确保 isTemplate 是数字类型
+          const formData = { ...this.form };
+          formData.isTemplate = this.form.isTemplate ? 1 : 0;
+          
           if (this.form.planId != null) {
-            updateStudyPlan(this.form).then(response => {
+            updateStudyPlan(formData).then(response => {
               this.$modal.msgSuccess("修改成功");
               this.open = false;
               this.getList();
               this.getStatistics();
             });
           } else {
-            addStudyPlan(this.form).then(response => {
+            addStudyPlan(formData).then(response => {
               this.$modal.msgSuccess("新增成功");
               this.open = false;
               this.getList();
@@ -591,7 +609,7 @@ export default {
     },
     /** 完成按钮操作 */
     handleComplete(row) {
-      this.$modal.confirm('是否确认完成该学习计划？').then(function() {
+      this.$modal.confirm('是否确认完成该学习计划？').then(() => {
         return completeStudyPlan(row.planId);
       }).then(() => {
         this.getList();
@@ -601,13 +619,45 @@ export default {
     },
     /** 查看按钮操作 */
     handleView(row) {
-      // TODO: 跳转到计划详情页面
-      this.$message.info('查看详情功能待实现');
+      // 显示计划详情
+      const h = this.$createElement;
+      const content = h('div', { style: { 'font-size': '14px', 'line-height': '1.8' } }, [
+        h('el-descriptions', { props: { title: '基本信息', column: 2, border: true } }, [
+          h('el-descriptions-item', { props: { label: '计划名称' } }, row.planName),
+          h('el-descriptions-item', { props: { label: '学科' } }, row.subject || '-'),
+          h('el-descriptions-item', { props: { label: '优先级' } }, this.getPriorityText(row.priority)),
+          h('el-descriptions-item', { props: { label: '难度' } }, this.getDifficultyText(row.difficulty)),
+          h('el-descriptions-item', { props: { label: '开始时间' } }, row.startDate ? this.formatDate(row.startDate) : '-'),
+          h('el-descriptions-item', { props: { label: '结束时间' } }, row.endDate ? this.formatDate(row.endDate) : '-'),
+          h('el-descriptions-item', { props: { label: '进度' } }, row.progress + '%'),
+          h('el-descriptions-item', { props: { label: '状态' } }, this.getStatusTag(row.status)),
+          h('el-descriptions-item', { props: { label: '描述', span: 2 } }, row.description || '无')
+        ])
+      ]);
+      
+      this.$alert(content, '计划详情', {
+        confirmButtonText: '关闭',
+        dangerouslyUseHTMLString: true,
+        customClass: 'plan-detail-dialog'
+      });
     },
     /** 智能生成按钮操作 */
     handleGenerate() {
-      this.resetGenerateForm();
-      this.generateOpen = true;
+      // 直接调用后端接口，基于优先级和截止日期自动生成
+      this.loading = true;
+      generateSmartPlan({}).then(response => {
+        const plans = response.data || [];
+        if (plans.length > 0) {
+          this.$modal.msgSuccess('已生成' + plans.length + '个学习计划');
+          this.getList();
+          this.getStatistics();
+        } else {
+          this.$modal.msgWarning('没有可生成的学习计划，请先添加总体计划');
+        }
+        this.loading = false;
+      }).catch(() => {
+        this.loading = false;
+      });
     },
     /** 提交生成 */
     submitGenerate() {
@@ -638,6 +688,48 @@ export default {
         '2': 'el-icon-arrow-up'
       };
       return icons[priority] || 'el-icon-minus';
+    },
+    // 获取优先级文本
+    getPriorityText(priority) {
+      const texts = {
+        '0': '低优先级',
+        '1': '中优先级',
+        '2': '高优先级'
+      };
+      return texts[priority] || '中优先级';
+    },
+    // 获取难度文本
+    getDifficultyText(difficulty) {
+      const texts = {
+        '1': '简单',
+        '2': '中等',
+        '3': '困难'
+      };
+      return texts[difficulty] || '中等';
+    },
+    // 获取状态标签
+    getStatusTag(status) {
+      const h = this.$createElement;
+      const types = {
+        '0': 'primary',
+        '1': 'success',
+        '2': 'info'
+      };
+      const texts = {
+        '0': '进行中',
+        '1': '已完成',
+        '2': '已取消'
+      };
+      return h('el-tag', { props: { type: types[status] || 'info', size: 'small' } }, texts[status] || '未知');
+    },
+    // 格式化时间
+    formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     },
     // 获取优先级颜色
     getPriorityColor(priority) {

@@ -124,7 +124,7 @@ public class StudyPlanServiceImpl implements IStudyPlanService
     /**
      * 标记学习计划为已完成
      * 
-     * @param planId 学习计划ID
+     * @param planId 学习计划 ID
      * @param actualHours 实际学习时长
      * @return 结果
      */
@@ -134,6 +134,8 @@ public class StudyPlanServiceImpl implements IStudyPlanService
         StudyPlan plan = new StudyPlan();
         plan.setPlanId(planId);
         plan.setIsCompleted(1);
+        plan.setStatus("1"); // 设置状态为已完成
+        plan.setProgress(100); // 设置进度为 100%
         plan.setCompletedTime(new Date());
         if (actualHours != null) {
             plan.setActualHours(new java.math.BigDecimal(actualHours));
@@ -142,38 +144,97 @@ public class StudyPlanServiceImpl implements IStudyPlanService
     }
 
     /**
-     * 根据优先级自动生成每日学习计划
+     * 根据优先级和截止日期自动生成每日学习计划
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 生成的学习计划列表
      */
     @Override
     public List<StudyPlan> generateDailyStudyPlan(Long userId)
     {
-        // 查询用户未完成的学习计划，按优先级排序
+        // 查询用户未完成的学习计划
         StudyPlan queryPlan = new StudyPlan();
         queryPlan.setUserId(userId);
         queryPlan.setIsCompleted(0);
         List<StudyPlan> allPlans = studyPlanMapper.selectStudyPlanList(queryPlan);
-        
-        // 按优先级降序排列
+            
+        // 按优先级降序、截止日期升序排列（优先级高的在前，截止日期近的在前）
         List<StudyPlan> sortedPlans = allPlans.stream()
-            .sorted((p1, p2) -> p2.getPriority().compareTo(p1.getPriority()))
+            .sorted((p1, p2) -> {
+                // 首先按优先级排序
+                int priorityCompare = p2.getPriority().compareTo(p1.getPriority());
+                if (priorityCompare != 0) {
+                    return priorityCompare;
+                }
+                // 优先级相同则按截止日期排序
+                if (p1.getDeadline() == null && p2.getDeadline() == null) {
+                    return 0;
+                }
+                if (p1.getDeadline() == null) {
+                    return 1;
+                }
+                if (p2.getDeadline() == null) {
+                    return -1;
+                }
+                return p1.getDeadline().compareTo(p2.getDeadline());
+            })
             .collect(Collectors.toList());
-        
-        // 返回前3个最高优先级的计划作为今日计划
+            
+        // 返回前 3 个最高优先级的计划作为今日计划
         return sortedPlans.stream().limit(3).collect(Collectors.toList());
     }
 
     /**
      * 统计用户学习计划完成情况
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 统计结果
      */
     @Override
     public int countCompletedPlansByUserId(Long userId)
     {
         return studyPlanMapper.countCompletedPlansByUserId(userId);
+    }
+
+    /**
+     * 获取学习计划统计汇总
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果
+     */
+    @Override
+    public java.util.Map<String, Object> getPlanSummary(Long userId)
+    {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        
+        // 查询所有计划
+        StudyPlan queryAll = new StudyPlan();
+        queryAll.setUserId(userId);
+        List<StudyPlan> allPlans = studyPlanMapper.selectStudyPlanList(queryAll);
+        
+        // 查询未完成计划
+        StudyPlan queryOngoing = new StudyPlan();
+        queryOngoing.setUserId(userId);
+        queryOngoing.setIsCompleted(0);
+        List<StudyPlan> ongoingPlans = studyPlanMapper.selectStudyPlanList(queryOngoing);
+        
+        // 查询已完成计划
+        StudyPlan queryCompleted = new StudyPlan();
+        queryCompleted.setUserId(userId);
+        queryCompleted.setIsCompleted(1);
+        List<StudyPlan> completedPlans = studyPlanMapper.selectStudyPlanList(queryCompleted);
+        
+        // 查询模板计划
+        StudyPlan queryTemplate = new StudyPlan();
+        queryTemplate.setUserId(userId);
+        queryTemplate.setIsTemplate(1);
+        List<StudyPlan> templatePlans = studyPlanMapper.selectStudyPlanList(queryTemplate);
+        
+        result.put("totalPlans", allPlans != null ? allPlans.size() : 0);
+        result.put("ongoingPlans", ongoingPlans != null ? ongoingPlans.size() : 0);
+        result.put("completedPlans", completedPlans != null ? completedPlans.size() : 0);
+        result.put("templatePlans", templatePlans != null ? templatePlans.size() : 0);
+        
+        return result;
     }
 }

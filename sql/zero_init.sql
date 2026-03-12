@@ -116,7 +116,7 @@ CREATE TABLE study_statistics (
 -- =============================================
 INSERT INTO sys_user (user_id, user_name, nick_name, user_type, email, phonenumber, sex, avatar, password, status, del_flag, login_ip, login_date, create_by, create_time, update_by, update_time, remark, signature) VALUES
 (1, 'admin', '管理员', '0', 'admin@study.com', '15888888888', '0', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-03-10 00:00:00', 'admin', '2026-03-10 00:00:00', '', NULL, '系统管理员', '专注学习，持续进步'),
-(2, 'ry', '测试用户', '1', 'ry@study.com', '15666666666', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-03-10 00:00:00', 'admin', '2026-03-10 00:00:00', '', NULL, '测试员', '学而时习之，不亦说乎');
+(2, 'test', '测试用户', '1', 'ry@study.com', '15666666666', '1', '', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '0', '0', '127.0.0.1', '2026-03-10 00:00:00', 'admin', '2026-03-10 00:00:00', '', NULL, '测试员', '学而时习之，不亦说乎');
 
 -- =============================================
 -- 为测试账户添加示例学习计划数据

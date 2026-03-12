@@ -95,8 +95,16 @@ public interface IStudyPlanService
     /**
      * 统计用户学习计划完成情况
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 统计结果
      */
     public int countCompletedPlansByUserId(Long userId);
+
+    /**
+     * 获取学习计划统计汇总
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果
+     */
+    public java.util.Map<String, Object> getPlanSummary(Long userId);
 }

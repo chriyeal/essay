@@ -181,12 +181,31 @@
                   ></el-switch>
                 </el-form-item>
                 
-                <!-- 自动设置时间功能 -->
-                <el-form-item label="智能时间设置">
-                  <el-button type="success" icon="el-icon-magic-stick" @click="autoSetTime" :loading="autoSettingLoading">
-                    {{ autoSettingLoading ? '正在分析...' : '根据任务自动设置时间' }}
-                  </el-button>
-                  <p class="setting-tip">系统会根据任务难度和学科自动推荐合适的时间设置</p>
+                <!-- 手动时间设置 -->
+                <el-form-item label="专注时间">
+                  <el-slider
+                    v-model="settings.tomatoDuration"
+                    :min="1"
+                    :max="60"
+                    :step="1"
+                    show-input
+                    show-stops
+                    range
+                  ></el-slider>
+                  <p class="setting-tip">设置专注时间：{{ settings.tomatoDuration }} 分钟</p>
+                </el-form-item>
+                
+                <el-form-item label="休息时间">
+                  <el-slider
+                    v-model="settings.restDuration"
+                    :min="1"
+                    :max="30"
+                    :step="1"
+                    show-input
+                    show-stops
+                    range
+                  ></el-slider>
+                  <p class="setting-tip">设置休息时间：{{ settings.restDuration }} 分钟</p>
                 </el-form-item>
                 
                 <el-button type="primary" @click="saveSettings">保存设置</el-button>
@@ -383,8 +402,8 @@ export default {
       
       // 设置
       settings: {
-        focusTime: 25,
-        breakTime: 5,
+        tomatoDuration: 25, // 专注时间，默认25分钟
+        restDuration: 5,    // 休息时间，默认5分钟
         longBreakTime: 15,
         longBreakInterval: 4,
         autoStartBreak: true
@@ -429,9 +448,6 @@ export default {
       
       // 折叠面板
       activeNames: ['1'],
-      
-      // 自动设置加载状态
-      autoSettingLoading: false,
     };
   },
   computed: {
@@ -544,51 +560,6 @@ export default {
         this.settings = JSON.parse(savedSettings);
       }
       this.updateTimerDisplay();
-    },
-    /** 自动设置时间 */
-    autoSetTime() {
-      this.autoSettingLoading = true;
-      
-      // 模拟智能分析过程
-      setTimeout(() => {
-        // 根据任务难度和学科智能设置时间
-        let tomatoDuration = 25; // 默认25分钟
-        let restDuration = 5;    // 默认5分钟
-        
-        // 根据学科调整时间
-        const subjectTimes = {
-          '数学': { tomato: 30, rest: 5 },
-          '物理': { tomato: 30, rest: 5 },
-          '化学': { tomato: 25, rest: 5 },
-          '英语': { tomato: 20, rest: 5 },
-          '语文': { tomato: 20, rest: 5 },
-          '计算机': { tomato: 35, rest: 10 },
-          '历史': { tomato: 20, rest: 5 },
-          '地理': { tomato: 20, rest: 5 }
-        };
-        
-        const subject = this.taskForm.subject || '其他';
-        if (subjectTimes[subject]) {
-          tomatoDuration = subjectTimes[subject].tomato;
-          restDuration = subjectTimes[subject].rest;
-        }
-        
-        // 根据难度调整时间
-        const difficulty = this.taskForm.difficulty || 2;
-        if (difficulty === 1) { // 简单
-          tomatoDuration = Math.max(15, tomatoDuration - 10);
-        } else if (difficulty === 3) { // 困难
-          tomatoDuration = Math.min(45, tomatoDuration + 10);
-          restDuration = Math.min(15, restDuration + 5);
-        }
-        
-        // 更新设置
-        this.settings.focusDuration = tomatoDuration * 60; // 转换为秒
-        this.settings.breakDuration = restDuration * 60;
-        
-        this.$message.success(`已为您智能设置：专注${tomatoDuration}分钟，休息${restDuration}分钟`);
-        this.autoSettingLoading = false;
-      }, 1500);
     },
     /** 保存设置 */
     saveSettings() {
@@ -737,12 +708,12 @@ export default {
     updateTimerDisplay() {
       switch (this.currentPhase) {
         case 'focus':
-          this.timeLeft = this.settings.focusTime * 60;
-          this.totalTime = this.settings.focusTime * 60;
+          this.timeLeft = this.settings.tomatoDuration * 60;
+          this.totalTime = this.settings.tomatoDuration * 60;
           break;
         case 'break':
-          this.timeLeft = this.settings.breakTime * 60;
-          this.totalTime = this.settings.breakTime * 60;
+          this.timeLeft = this.settings.restDuration * 60;
+          this.totalTime = this.settings.restDuration * 60;
           break;
         case 'longBreak':
           this.timeLeft = this.settings.longBreakTime * 60;

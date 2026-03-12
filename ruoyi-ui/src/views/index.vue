@@ -169,13 +169,17 @@ export default {
     // 加载学习统计数据
     loadStudyStatistics() {
       getStudyStatistics().then(response => {
-        this.studyStats = response.data || {}
+        this.studyStats = response.data || {
+          planCount: 0,
+          studyHours: 0,
+          completedTasks: 0
+        }
       }).catch(() => {
-        // 如果获取失败，使用默认值
+        // 如果获取失败，显示0而不是预设值
         this.studyStats = {
-          planCount: 12,
-          studyHours: 45,
-          completedTasks: 86
+          planCount: 0,
+          studyHours: 0,
+          completedTasks: 0
         }
       })
     },

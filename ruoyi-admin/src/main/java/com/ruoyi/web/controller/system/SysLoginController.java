@@ -103,13 +103,13 @@ public class SysLoginController
         menus.add(homeMenu);
 
         // 学习计划
-        menus.add(createMenu("/study-plan", "study/plan/index", "学习计划", "education", "study:plan:list"));
+        menus.add(createMenu("/study/plan", "study/plan/index", "学习计划", "education", "study:plan:list"));
 
         // 番茄钟
-        menus.add(createMenu("/tomato-clock", "study/tomato/index", "番茄钟", "clock", "study:tomato:list"));
+        menus.add(createMenu("/study/tomato", "study/tomato/index", "番茄钟", "clock", "study:tomato:list"));
 
         // 学习统计
-        menus.add(createMenu("/statistics", "study/statistics/index", "学习统计", "chart", "study:statistics:list"));
+        menus.add(createMenu("/study/statistics", "study/statistics/index", "学习统计", "chart", "study:statistics:list"));
 
         // 用户管理（仅管理员可见）
         if ("0".equals(user.getUserType()))

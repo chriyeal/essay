@@ -31,6 +31,9 @@
           <router-link to="/user/profile">
             <el-dropdown-item>个人中心</el-dropdown-item>
           </router-link>
+          <router-link to="/system/user" v-if="isAdmin">
+            <el-dropdown-item>用户管理</el-dropdown-item>
+          </router-link>
           <el-dropdown-item @click.native="setLayout" v-if="setting">
             <span>布局设置</span>
           </el-dropdown-item>
@@ -73,6 +76,9 @@ export default {
       'device',
       'nickName'
     ]),
+    isAdmin() {
+      return this.$store.getters.userType === '0'
+    },
     setting: {
       get() {
         return this.$store.state.settings.showSettings

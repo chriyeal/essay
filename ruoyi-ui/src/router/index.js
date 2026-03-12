@@ -62,9 +62,9 @@ export const constantRoutes = [
     hidden: true
   },
   {
-    path: '',
+    path: '/',
     component: Layout,
-    redirect: 'index',
+    redirect: '/index',
     children: [
       {
         path: 'index',

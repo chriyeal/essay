@@ -32,21 +32,66 @@ const permission = {
     // 生成路由
     GenerateRoutes({ commit }) {
       return new Promise(resolve => {
-        // 向后端请求路由数据
-        getRouters().then(res => {
-          const sdata = JSON.parse(JSON.stringify(res.data))
-          const rdata = JSON.parse(JSON.stringify(res.data))
-          const sidebarRoutes = filterAsyncRouter(sdata)
-          const rewriteRoutes = filterAsyncRouter(rdata, false, true)
-          const asyncRoutes = filterDynamicRoutes(dynamicRoutes)
-          rewriteRoutes.push({ path: '*', redirect: '/404', hidden: true })
-          router.addRoutes(asyncRoutes)
-          commit('SET_ROUTES', rewriteRoutes)
-          commit('SET_SIDEBAR_ROUTERS', constantRoutes.concat(sidebarRoutes))
-          commit('SET_DEFAULT_ROUTES', sidebarRoutes)
-          commit('SET_TOPBAR_ROUTES', sidebarRoutes)
-          resolve(rewriteRoutes)
-        })
+        // 使用固定的学习计划系统路由
+        const studyRoutes = [
+          {
+            path: '/index',
+            component: 'Layout',
+            redirect: '/index',
+            children: [
+              {
+                path: 'index',
+                component: 'index',
+                name: 'Index',
+                meta: { title: '首页', icon: 'dashboard' }
+              }
+            ]
+          },
+          {
+            path: '/study',
+            component: 'Layout',
+            redirect: '/study/plan',
+            name: 'Study',
+            meta: { title: '学习管理', icon: 'education' },
+            children: [
+              {
+                path: 'plan',
+                component: 'study/plan/index',
+                name: 'StudyPlan',
+                meta: { title: '学习计划', icon: 'notebook-2', permissions: ['study:plan:list'] }
+              },
+              {
+                path: 'tomato',
+                component: 'study/tomato/index',
+                name: 'TomatoClock',
+                meta: { title: '番茄钟', icon: 'timer', permissions: ['study:tomato:list'] }
+              },
+              {
+                path: 'statistics',
+                component: 'study/statistics/index',
+                name: 'StudyStatistics',
+                meta: { title: '学习统计', icon: 'data-analysis', permissions: ['study:statistics:list'] }
+              },
+              {
+                path: 'profile',
+                component: 'study/profile/index',
+                name: 'StudyProfile',
+                meta: { title: '个人中心', icon: 'user', permissions: ['study:profile:list'] }
+              }
+            ]
+          }
+        ];
+        
+        const sidebarRoutes = filterAsyncRouter(JSON.parse(JSON.stringify(studyRoutes)))
+        const rewriteRoutes = filterAsyncRouter(JSON.parse(JSON.stringify(studyRoutes)), false, true)
+        const asyncRoutes = filterDynamicRoutes(dynamicRoutes)
+        rewriteRoutes.push({ path: '*', redirect: '/404', hidden: true })
+        router.addRoutes(asyncRoutes)
+        commit('SET_ROUTES', rewriteRoutes)
+        commit('SET_SIDEBAR_ROUTERS', constantRoutes.concat(sidebarRoutes))
+        commit('SET_DEFAULT_ROUTES', sidebarRoutes)
+        commit('SET_TOPBAR_ROUTES', sidebarRoutes)
+        resolve(rewriteRoutes)
       })
     }
   }

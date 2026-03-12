@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>路由测试</title>
+</head>
+<body>
+    <h1>路由测试页面</h1>
+    <p>当前时间：<span id="time"></span></p>
+    <p>请检查浏览器开发者工具的Network和Console标签页</p>
+    <button onclick="clearCookies()">清除所有Cookie</button>
+    <button onclick="checkToken()">检查Token状态</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('time').textContent = new Date().toLocaleString();
+        
+        function clearCookies() {
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            document.getElementById('result').innerHTML += '<p>Cookie已清除</p>';
+        }
+        
+        function checkToken() {
+            const token = document.cookie.split(';').find(row => row.trim().startsWith('Admin-Token='));
+            document.getElementById('result').innerHTML += `<p>Token状态: ${token ? '存在' : '不存在'}</p>`;
+            if (token) {
+                document.getElementById('result').innerHTML += `<p>Token值: ${token}</p>`;
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.onload = function() {
+            checkToken();
+        };
+    </script>
+</body>
+</html>

@@ -84,6 +84,8 @@ export default {
         studyHours: 0,
         completedTasks: 0
       },
+      // 定时刷新器
+      refreshTimer: null,
       // 快捷入口
       quickActions: [
         {
@@ -164,6 +166,15 @@ export default {
   },
   created() {
     this.loadStudyStatistics()
+    // 每 5 秒刷新一次数据
+    this.refreshTimer = setInterval(() => {
+      this.loadStudyStatistics()
+    }, 5000);
+  },
+  beforeDestroy() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer)
+    }
   },
   methods: {
     // 加载学习统计数据

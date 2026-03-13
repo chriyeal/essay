@@ -255,7 +255,7 @@
 
 <script>
 import { getTomatoStatistics, getTodayTomatoRecords, startTomato, pauseTomato, resumeTomato, completeTomato, abandonTomato } from "@/api/study/tomato";
-import { listStudyPlan } from "@/api/study/plan";
+import { listStudyPlan, updateStudyPlan } from "@/api/study/plan";
 
 export default {
   name: "TomatoClock",
@@ -372,7 +372,8 @@ export default {
     }
   },
   beforeRouteLeave(to, from, next) {
-    if (this.isRunning || this.isPaused) {
+    // 只有在计时器真正运行中才提示
+    if (this.isRunning && this.currentRecord) {
       this.$confirm('番茄钟正在运行中，离开页面将中断计时，确认离开吗？', '提示', {
         confirmButtonText: '确认离开',
         cancelButtonText: '继续专注',
@@ -386,6 +387,7 @@ export default {
         next(false);
       });
     } else {
+      // 如果没有在运行，直接离开
       next();
     }
   },
@@ -394,17 +396,23 @@ export default {
     loadStatistics() {
       getTomatoStatistics().then(response => {
         const stats = response.data || {};
-        this.statistics[0].value = stats.todayCount || 0;
-        this.statistics[1].value = stats.weekCount || 0;
-        this.statistics[2].value = stats.monthCount || 0;
-        this.statistics[3].value = stats.totalCount || 0;
-      }).catch(() => {
-        // 使用默认值
+        // 强制触发 Vue 响应式更新
+        this.statistics = this.statistics.map((item, index) => {
+          if (index === 0) return { ...item, value: stats.todayCount || 0 };
+          if (index === 1) return { ...item, value: stats.weekCount || 0 };
+          if (index === 2) return { ...item, value: stats.monthCount || 0 };
+          if (index === 3) return { ...item, value: stats.totalCount || 0 };
+          return item;
+        });
+        console.log('✅ 统计数据已更新:', this.statistics);
+      }).catch(error => {
+        console.error('❌ 加载统计数据失败:', error);
+        // 使用真实数据（0）而不是模拟数据
         this.statistics = [
-          { key: 'today', label: '今日', sub: '番茄钟', value: 3, icon: 'el-icon-timer', color: '#409EFF', bgColor: 'rgba(64, 158, 255, 0.1)' },
-          { key: 'week', label: '本周', sub: '番茄钟', value: 15, icon: 'el-icon-date', color: '#67C23A', bgColor: 'rgba(103, 194, 58, 0.1)' },
-          { key: 'month', label: '本月', sub: '番茄钟', value: 45, icon: 'el-icon-month', color: '#E6A23C', bgColor: 'rgba(230, 162, 60, 0.1)' },
-          { key: 'total', label: '总计', sub: '番茄钟', value: 128, icon: 'el-icon-data', color: '#F56C6C', bgColor: 'rgba(245, 108, 108, 0.1)' }
+          { key: 'today', label: '今日', sub: '番茄钟', value: 0, icon: 'el-icon-timer', color: '#409EFF', bgColor: 'rgba(64, 158, 255, 0.1)' },
+          { key: 'week', label: '本周', sub: '番茄钟', value: 0, icon: 'el-icon-date', color: '#67C23A', bgColor: 'rgba(103, 194, 58, 0.1)' },
+          { key: 'month', label: '本月', sub: '番茄钟', value: 0, icon: 'el-icon-month', color: '#E6A23C', bgColor: 'rgba(230, 162, 60, 0.1)' },
+          { key: 'total', label: '总计', sub: '番茄钟', value: 0, icon: 'el-icon-data', color: '#F56C6C', bgColor: 'rgba(245, 108, 108, 0.1)' }
         ];
       });
     },
@@ -438,11 +446,12 @@ export default {
     calculateTodayStats() {
       const completed = this.historyRecords.filter(r => r.status === '1').length;
       const totalTime = this.historyRecords.reduce((sum, r) => sum + (r.duration || 0), 0);
-      this.todayStats = {
+      // 强制触发 Vue 响应式更新
+      this.$set(this, 'todayStats', {
         completed,
         totalTime,
         interruptions: this.historyRecords.length - completed
-      };
+      });
     },
     /** 加载学习计划 */
     loadPlans() {
@@ -530,9 +539,10 @@ export default {
     },
     /** 开始倒计时 */
     startCountdown() {
-      this.updateTimerDisplay();
       this.isRunning = true;
       this.isPaused = false;
+      
+      console.log('开始倒计时，初始时间:', this.timeLeft, '秒');
       
       this.timer = setInterval(() => {
         this.timeLeft--;
@@ -541,6 +551,7 @@ export default {
         }
         
         if (this.timeLeft <= 0) {
+          console.log('时间到！触发 completePhase');
           this.completePhase();
         }
       }, 1000);
@@ -549,12 +560,15 @@ export default {
     completePhase() {
       this.clearTimer();
       
-      if (this.currentPhase === 'focus') {
+      console.log('completePhase 被调用，当前 timerMode:', this.timerMode);
+      
+      if (this.timerMode === 'focus') {
         // 完成专注阶段
         const duration = parseInt(this.settings.tomatoDuration) || 25;
         
         // 更新已学习时间
         this.learnedTime += duration;
+        console.log('已学习时间累加:', this.learnedTime, '分钟，目标:', this.taskForm.totalTime, '分钟');
         
         // 播放提示音
         this.playNotificationSound();
@@ -567,30 +581,47 @@ export default {
           duration: 3000
         });
         
+        // 检查是否需要自动完成学习计划
+        if (this.taskForm.planId && this.taskForm.totalTime && this.learnedTime >= this.taskForm.totalTime) {
+          console.log('满足自动完成条件，调用 autoCompletePlan');
+          this.autoCompletePlan();
+        }
+        
         completeTomato(this.currentRecord.recordId).then(() => {
           console.log('番茄钟已完成');
+          // 清除当前记录
+          this.currentRecord = null;
+          // 刷新统计数据
+          this.loadStatistics();
+          this.loadTodayRecords();
         }).catch(() => {
           console.log('本地完成记录');
+          // 清除当前记录
+          this.currentRecord = null;
+          // 本地也要刷新统计
+          this.loadStatistics();
+          this.loadTodayRecords();
         });
         
-        // 决定下一个阶段 - 自动跳转休息
+        // 决定下一个阶段 - 自动跳转休息（不自动开始）
+        this.timerMode = 'break';
         if (this.cycleCount % this.settings.longBreakInterval === 0) {
-          this.currentPhase = 'longBreak';
           this.timeLeft = this.settings.longBreakTime * 60;
           this.totalTime = this.settings.longBreakTime * 60;
-          this.$message.success('已完成 4 个番茄钟，进入长休息时间（15 分钟）');
+          this.$message.success('已完成 4 个番茄钟，进入长休息时间（15 分钟），请点击开始按钮');
         } else {
-          this.currentPhase = 'break';
           this.timeLeft = this.settings.restDuration * 60;
           this.totalTime = this.settings.restDuration * 60;
-          this.$message.success(`准备开始休息（${this.settings.restDuration}分钟）`);
+          this.$message.success(`准备开始休息（${this.settings.restDuration}分钟），请点击开始按钮`);
         }
         
         this.cycleCount++;
-        this.updateTimerDisplay();
+        // 更新状态
+        this.isRunning = false;
+        this.isPaused = false;
       } else {
         // 完成休息阶段
-        this.currentPhase = 'focus';
+        this.timerMode = 'focus';
         this.timeLeft = this.settings.tomatoDuration * 60;
         this.totalTime = this.settings.tomatoDuration * 60;
         
@@ -605,7 +636,9 @@ export default {
           duration: 3000
         });
         
-        this.updateTimerDisplay();
+        // 更新状态
+        this.isRunning = false;
+        this.isPaused = false;
       }
     },
     /** 暂停计时器 */
@@ -674,6 +707,21 @@ export default {
       } catch (e) {
         console.log('音频播放失败:', e);
       }
+    },
+    /** 自动完成学习计划 */
+    autoCompletePlan() {
+      this.$message.success(`恭喜！该学习计划已达到目标时长，已自动标记为已完成`);
+      
+      // 调用后端接口更新计划状态
+      updateStudyPlan({
+        planId: this.taskForm.planId,
+        status: '1', // 设置为已完成
+        progress: 100 // 设置进度为 100%
+      }).then(() => {
+        console.log('学习计划已自动完成');
+      }).catch(() => {
+        console.log('本地更新学习计划状态');
+      });
     },
     /** 更新计时器显示 */
     updateTimerDisplay() {

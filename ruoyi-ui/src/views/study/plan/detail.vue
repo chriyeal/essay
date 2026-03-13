@@ -51,7 +51,7 @@
             <div class="progress-circle">
               <el-progress
                 type="circle"
-                :percentage="planDetail.progress"
+                :percentage="Math.min(100, Math.max(0, planDetail.progress || 0))"
                 :status="getProgressStatus(planDetail.progress)"
                 :width="120"
                 :stroke-width="10"

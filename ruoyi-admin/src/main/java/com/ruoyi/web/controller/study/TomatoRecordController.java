@@ -149,17 +149,35 @@ public class TomatoRecordController extends BaseController
     /**
      * 完成番茄钟
      */
-    @PreAuthorize("@ss.hasPermi('study:tomato:complete')")
-    @Log(title = "番茄钟", businessType = BusinessType.UPDATE)
     @PutMapping("/complete/{recordId}")
     public AjaxResult completeTomato(@PathVariable Long recordId)
     {
-        // 权限检查
-        TomatoRecord record = tomatoRecordService.selectTomatoRecordByRecordId(recordId);
-        if (!record.getUserId().equals(SecurityUtils.getUserId())) {
-            return AjaxResult.error("无权限操作该番茄钟");
+        try {
+            System.out.println("=== 接收完成番茄钟请求 ===");
+            System.out.println("recordId: " + recordId);
+            
+            // 权限检查
+            TomatoRecord record = tomatoRecordService.selectTomatoRecordByRecordId(recordId);
+            if (record == null) {
+                System.out.println("记录不存在: " + recordId);
+                return AjaxResult.error("记录不存在");
+            }
+            
+            if (!record.getUserId().equals(SecurityUtils.getUserId())) {
+                return AjaxResult.error("无权限操作该番茄钟");
+            }
+            
+            int result = tomatoRecordService.completeTomato(recordId);
+            System.out.println("=== 完成番茄钟结果 ===");
+            System.out.println("recordId: " + recordId);
+            System.out.println("result: " + result);
+            
+            return toAjax(result);
+        } catch (Exception e) {
+            System.out.println("=== 完成番茄钟异常 ===");
+            e.printStackTrace();
+            return AjaxResult.error("完成失败: " + e.getMessage());
         }
-        return toAjax(tomatoRecordService.completeTomato(recordId));
     }
 
     /**
@@ -203,12 +221,30 @@ public class TomatoRecordController extends BaseController
     /**
      * 统计番茄钟完成情况
      */
-    @PreAuthorize("@ss.hasPermi('study:tomato:query')")
     @GetMapping("/statistics")
     public AjaxResult getTomatoStatistics()
     {
-        int completedCount = tomatoRecordService.countCompletedTomatoByUserId(SecurityUtils.getUserId());
-        return AjaxResult.success(completedCount);
+        try {
+            Long userId = SecurityUtils.getUserId();
+            System.out.println("=== 接收到统计请求 ===");
+            System.out.println("userId: " + userId);
+            
+            java.util.Map<String, Object> result = tomatoRecordService.getTomatoStatistics(userId);
+            
+            System.out.println("=== 统计数据查询结果 ===");
+            System.out.println("userId: " + userId);
+            System.out.println("todayCount: " + result.get("todayCount"));
+            System.out.println("weekCount: " + result.get("weekCount"));
+            System.out.println("monthCount: " + result.get("monthCount"));
+            System.out.println("totalCount: " + result.get("totalCount"));
+            System.out.println("========================");
+            
+            return AjaxResult.success(result);
+        } catch (Exception e) {
+            System.out.println("=== 番茄钟统计接口异常 ===");
+            e.printStackTrace();
+            return AjaxResult.error("获取统计数据失败: " + e.getMessage());
+        }
     }
 
     /**

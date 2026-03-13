@@ -97,7 +97,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectTodayTomatoRecordByUserId" parameterType="Long" resultMap="TomatoRecordResult">
         <include refid="selectTomatoRecordVo"/>
         where user_id = #{userId} 
-        and date(start_time) = curdate()
+        and start_time >= CURDATE()
+        and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)
         order by create_time desc
     </select>
     
@@ -111,5 +112,38 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where user_id = #{userId} and status = 0
         order by create_time desc
         limit 1
+    </select>
+    
+    <!-- 统计今日完成的番茄钟数量 -->
+    <select id="countTodayCompletedTomatoByUserId" parameterType="Long" resultType="int">
+        select count(*) from tomato_record 
+        where user_id = #{userId} 
+        and status = 1 
+        and start_time >= CURDATE()
+        and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+    </select>
+    
+    <!-- 统计本周完成的番茄钟数量 -->
+    <select id="countWeekCompletedTomatoByUserId" parameterType="Long" resultType="int">
+        select count(*) from tomato_record 
+        where user_id = #{userId} 
+        and status = 1 
+        and yearweek(start_time, 1) = yearweek(curdate(), 1)
+    </select>
+    
+    <!-- 统计本月完成的番茄钟数量 -->
+    <select id="countMonthCompletedTomatoByUserId" parameterType="Long" resultType="int">
+        select count(*) from tomato_record 
+        where user_id = #{userId} 
+        and status = 1 
+        and month(start_time) = month(curdate())
+        and year(start_time) = year(curdate())
+    </select>
+    
+    <!-- 统计总共完成的番茄钟数量 -->
+    <select id="countTotalCompletedTomatoByUserId" parameterType="Long" resultType="int">
+        select count(*) from tomato_record 
+        where user_id = #{userId} 
+        and status = 1
     </select>
 </mapper>

@@ -97,7 +97,7 @@
             <div class="efficiency-item" v-for="item in efficiencyMetrics" :key="item.key">
               <div class="efficiency-label">{{ item.label }}</div>
               <el-progress
-                :percentage="item.value"
+                :percentage="Math.min(100, Math.max(0, item.value || 0))"
                 :status="getEfficiencyStatus(item.value)"
                 :stroke-width="8"
                 text-inside

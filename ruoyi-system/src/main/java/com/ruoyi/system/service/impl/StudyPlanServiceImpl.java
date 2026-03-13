@@ -70,6 +70,16 @@ public class StudyPlanServiceImpl implements IStudyPlanService
     public int updateStudyPlan(StudyPlan studyPlan)
     {
         studyPlan.setUpdateTime(DateUtils.getNowDate());
+        
+        // 如果状态为已完成，自动设置进度为100%
+        if ("1".equals(studyPlan.getStatus())) {
+            studyPlan.setProgress(100);
+            studyPlan.setIsCompleted(1);
+            if (studyPlan.getCompletedTime() == null) {
+                studyPlan.setCompletedTime(new Date());
+            }
+        }
+        
         return studyPlanMapper.updateStudyPlan(studyPlan);
     }
 

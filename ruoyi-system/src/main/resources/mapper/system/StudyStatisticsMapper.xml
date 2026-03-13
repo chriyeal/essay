@@ -106,8 +106,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     
     <select id="selectStudySummaryByUserId" parameterType="Long" resultType="java.util.HashMap">
         select 
-            (select count(*) from study_plan where user_id = #{userId} and is_template = 0 and start_date = CURDATE()) as plan_count,
-            (select coalesce(sum(actual_hours), 0) from study_plan where user_id = #{userId} and is_template = 0 and start_date = CURDATE()) as study_hours,
-            (select coalesce(sum(completed_plans), 0) from study_statistics where user_id = #{userId} and study_date = CURDATE()) as completed_tasks
+            (select count(*) from study_plan where user_id = #{userId} and is_template = 0) as plan_count,
+            (select coalesce(sum(tomato_duration), 0) from tomato_record where user_id = #{userId} and status = 1 and start_time >= CURDATE() and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as study_hours,
+            (select count(*) from tomato_record where user_id = #{userId} and status = 1 and start_time >= CURDATE() and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as completed_tasks
     </select>
 </mapper>

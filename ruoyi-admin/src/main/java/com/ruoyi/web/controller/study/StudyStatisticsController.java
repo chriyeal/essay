@@ -143,8 +143,26 @@ public class StudyStatisticsController extends BaseController
     @GetMapping("/summary")
     public AjaxResult getStudySummary()
     {
-        java.util.Map<String, Object> summary = studyStatisticsService.selectStudySummaryByUserId(SecurityUtils.getUserId());
-        return AjaxResult.success(summary);
+        try {
+            Long userId = SecurityUtils.getUserId();
+            System.out.println("=== 接收到首页统计请求 ===");
+            System.out.println("userId: " + userId);
+            
+            java.util.Map<String, Object> summary = studyStatisticsService.selectStudySummaryByUserId(userId);
+            
+            System.out.println("=== 首页统计数据查询结果 ===");
+            System.out.println("userId: " + userId);
+            System.out.println("plan_count: " + summary.get("plan_count"));
+            System.out.println("study_hours: " + summary.get("study_hours"));
+            System.out.println("completed_tasks: " + summary.get("completed_tasks"));
+            System.out.println("============================");
+            
+            return AjaxResult.success(summary);
+        } catch (Exception e) {
+            System.out.println("=== 首页统计接口异常 ===");
+            e.printStackTrace();
+            return AjaxResult.error("获取统计数据失败: " + e.getMessage());
+        }
     }
 
     /**

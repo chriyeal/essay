@@ -86,8 +86,40 @@ public interface TomatoRecordMapper
     /**
      * 查询正在进行的番茄钟
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 番茄钟记录
      */
     public TomatoRecord selectActiveTomatoByUserId(Long userId);
+    
+    /**
+     * 统计今日完成的番茄钟数量
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果
+     */
+    public int countTodayCompletedTomatoByUserId(Long userId);
+    
+    /**
+     * 统计本周完成的番茄钟数量
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果
+     */
+    public int countWeekCompletedTomatoByUserId(Long userId);
+    
+    /**
+     * 统计本月完成的番茄钟数量
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果
+     */
+    public int countMonthCompletedTomatoByUserId(Long userId);
+    
+    /**
+     * 统计总共完成的番茄钟数量
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果
+     */
+    public int countTotalCompletedTomatoByUserId(Long userId);
 }

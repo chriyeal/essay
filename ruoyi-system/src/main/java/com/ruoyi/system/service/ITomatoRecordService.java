@@ -114,8 +114,16 @@ public interface ITomatoRecordService
     /**
      * 统计用户番茄钟完成情况
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 统计结果
      */
     public int countCompletedTomatoByUserId(Long userId);
+    
+    /**
+     * 获取番茄钟统计数据
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果 Map
+     */
+    public java.util.Map<String, Object> getTomatoStatistics(Long userId);
 }

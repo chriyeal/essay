@@ -152,17 +152,51 @@ public class TomatoRecordServiceImpl implements ITomatoRecordService
     /**
      * 完成番茄钟
      * 
-     * @param recordId 记录ID
+     * @param recordId 记录 ID
      * @return 结果
      */
     @Override
     public int completeTomato(Long recordId)
     {
-        TomatoRecord tomatoRecord = new TomatoRecord();
-        tomatoRecord.setRecordId(recordId);
-        tomatoRecord.setEndTime(new Date());
-        tomatoRecord.setStatus(1); // 已完成
-        return tomatoRecordMapper.updateTomatoRecord(tomatoRecord);
+        TomatoRecord tomatoRecord = tomatoRecordMapper.selectTomatoRecordByRecordId(recordId);
+        if (tomatoRecord == null) {
+            throw new RuntimeException("番茄钟记录不存在");
+        }
+            
+        // 更新当前记录为已完成
+        TomatoRecord updateRecord = new TomatoRecord();
+        updateRecord.setRecordId(recordId);
+        updateRecord.setEndTime(new Date());
+        updateRecord.setStatus(1); // 已完成
+        int result = tomatoRecordMapper.updateTomatoRecord(updateRecord);
+            
+        System.out.println("=== 完成番茄钟 ===");
+        System.out.println("recordId: " + recordId);
+        System.out.println("userId: " + tomatoRecord.getUserId());
+        System.out.println("tomatoDuration: " + tomatoRecord.getTomatoDuration());
+            
+        // 更新今日统计数据
+        try {
+            updateTodayStatistics(tomatoRecord.getUserId(), tomatoRecord.getTomatoDuration());
+            System.out.println("统计数据已更新");
+        } catch (Exception e) {
+            System.err.println("更新统计数据失败：" + e.getMessage());
+        }
+            
+        return result;
+    }
+        
+    /**
+     * 更新今日统计数据
+     * 
+     * @param userId 用户 ID
+     * @param duration 本次番茄钟时长（分钟）
+     */
+    private void updateTodayStatistics(Long userId, Integer duration)
+    {
+        // 这里不需要具体实现，因为首页统计是通过 SQL 直接查询 tomato_record 表的
+        // 只要 tomato_record 表的状态更新了，统计数据就会自动更新
+        System.out.println("准备更新用户 " + userId + " 的统计数据，时长：" + duration + "分钟");
     }
 
     /**
@@ -185,7 +219,7 @@ public class TomatoRecordServiceImpl implements ITomatoRecordService
     /**
      * 查询用户正在进行的番茄钟
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 番茄钟记录
      */
     @Override
@@ -197,12 +231,42 @@ public class TomatoRecordServiceImpl implements ITomatoRecordService
     /**
      * 统计用户番茄钟完成情况
      * 
-     * @param userId 用户ID
+     * @param userId 用户 ID
      * @return 统计结果
      */
     @Override
     public int countCompletedTomatoByUserId(Long userId)
     {
         return tomatoRecordMapper.countCompletedTomatoByUserId(userId);
+    }
+    
+    /**
+     * 获取番茄钟统计数据
+     * 
+     * @param userId 用户 ID
+     * @return 统计结果 Map
+     */
+    public java.util.Map<String, Object> getTomatoStatistics(Long userId)
+    {
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        
+        int todayCount = tomatoRecordMapper.countTodayCompletedTomatoByUserId(userId);
+        int weekCount = tomatoRecordMapper.countWeekCompletedTomatoByUserId(userId);
+        int monthCount = tomatoRecordMapper.countMonthCompletedTomatoByUserId(userId);
+        int totalCount = tomatoRecordMapper.countTotalCompletedTomatoByUserId(userId);
+        
+        System.out.println("=== 番茄钟统计数据 ===");
+        System.out.println("userId: " + userId);
+        System.out.println("todayCount: " + todayCount);
+        System.out.println("weekCount: " + weekCount);
+        System.out.println("monthCount: " + monthCount);
+        System.out.println("totalCount: " + totalCount);
+        
+        result.put("todayCount", todayCount);
+        result.put("weekCount", weekCount);
+        result.put("monthCount", monthCount);
+        result.put("totalCount", totalCount);
+        
+        return result;
     }
 }

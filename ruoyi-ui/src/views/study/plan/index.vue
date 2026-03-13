@@ -119,7 +119,7 @@
       <el-table-column prop="progress" label="进度" width="150">
         <template slot-scope="scope">
           <el-progress
-            :percentage="scope.row.progress"
+            :percentage="Math.min(100, Math.max(0, scope.row.progress || 0))"
             :status="getProgressStatus(scope.row.progress)"
             :stroke-width="10"
             text-inside

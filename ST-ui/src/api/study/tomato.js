@@ -99,3 +99,11 @@ export function getTodayTomatoRecords() {
     method: 'get'
   })
 }
+
+// 强制中断进行中的番茄钟
+export function forceStopActiveTomato() {
+  return request({
+    url: '/study/tomato/force-stop',
+    method: 'put'
+  })
+}

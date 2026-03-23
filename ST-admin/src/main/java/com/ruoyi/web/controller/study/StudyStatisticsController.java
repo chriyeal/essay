@@ -69,7 +69,7 @@ public class StudyStatisticsController extends BaseController
      * 获取学习统计数据详细信息
      */
     @PreAuthorize("@ss.hasPermi('study:statistics:query')")
-    @GetMapping(value = "/{statId}")
+    @GetMapping(value = "/detail/{statId}")
     public AjaxResult getInfo(@PathVariable("statId") Long statId)
     {
         StudyStatistics statistics = studyStatisticsService.selectStudyStatisticsByStatId(statId);
@@ -78,6 +78,16 @@ public class StudyStatisticsController extends BaseController
             return AjaxResult.error("无权限访问该统计数据");
         }
         return AjaxResult.success(statistics);
+    }
+
+    /**
+     * 获取成就数据
+     */
+    @GetMapping("/achievements")
+    public AjaxResult getAchievements()
+    {
+        // 返回空列表，成就功能暂未实现
+        return AjaxResult.success(new java.util.ArrayList<>());
     }
 
     /**

@@ -285,6 +285,604 @@
 返回生成的今日计划列表
 ```
 
+### 6.4 UML设计图
+
+本节包含系统的用例图、时序图、架构图、数据流图、类图的文字描述版本。
+
+#### 6.4.1 用例图
+
+**用户角色与功能用例**
+
+| 角色 | 用例分类 | 用例名称 | 用例描述 |
+|------|---------|---------|--------|
+| 用户 | 用户管理 | 用户注册 | 新用户注册账号 |
+| 用户 | 用户管理 | 用户登录 | 已注册用户登录系统 |
+| 用户 | 用户管理 | 修改个人信息 | 查看和修改个人信息 |
+| 用户 | 用户管理 | 上传头像 | 上传个人头像图片 |
+| 用户 | 学习计划 | 创建学习计划 | 创建多日计划或今日计划 |
+| 用户 | 学习计划 | 编辑学习计划 | 修改已创建的学习计划 |
+| 用户 | 学习计划 | 删除学习计划 | 删除不需要的学习计划 |
+| 用户 | 学习计划 | 查看学习计划列表 | 查看所有学习计划 |
+| 用户 | 学习计划 | 智能生成今日计划 | 根据多日计划自动生成今日任务 |
+| 用户 | 学习计划 | 标记计划完成 | 手动标记计划为已完成 |
+| 用户 | 学习计划 | 筛选计划 | 按状态、类型筛选计划 |
+| 用户 | 番茄钟 | 开始番茄钟 | 开始专注计时 |
+| 用户 | 番茄钟 | 暂停番茄钟 | 暂停当前计时 |
+| 用户 | 番茄钟 | 恢复番茄钟 | 恢复暂停的计时 |
+| 用户 | 番茄钟 | 完成番茄钟 | 计时结束自动完成 |
+| 用户 | 番茄钟 | 放弃番茄钟 | 放弃当前计时 |
+| 用户 | 番茄钟 | 查看今日记录 | 查看当日番茄钟列表 |
+| 用户 | 番茄钟 | 自定义时长 | 设置专注和休息时长 |
+| 用户 | 数据统计 | 查看学习统计 | 查看学习数据统计卡片 |
+| 用户 | 数据统计 | 查看学习趋势 | 查看学习时长趋势图 |
+| 用户 | 数据统计 | 查看完成情况 | 查看任务完成情况 |
+
+**用例关系说明**
+- **包含关系(include)**：智能生成今日计划 → 查看学习计划列表；完成番茄钟 → 查看今日记录；完成番茄钟 → 查看学习统计
+- **扩展关系(extend)**：标记计划完成 → 查看学习统计
+
+#### 6.4.2 时序图
+
+**（1）用户登录时序**
+
+```
+用户 → 前端(Vue.js) → 后端(Spring Boot) → 数据库(MySQL) → JWT认证服务
+
+1. 用户输入用户名密码
+2. 前端发送 POST /login {username, password}
+3. 后端查询数据库获取用户信息
+4. 数据库返回用户数据
+
+   分支1 - 用户存在且密码正确：
+   ├── JWT生成Token
+   ├── 返回成功 + Token + 用户信息
+   ├── 前端存储Token到localStorage
+   └── 跳转到首页
+
+   分支2 - 用户不存在或密码错误：
+   ├── 返回错误信息
+   └── 前端显示错误提示
+```
+
+**（2）智能生成今日计划时序**
+
+```
+用户 → 前端 → Controller → Service → Mapper → 数据库
+
+1. 用户点击"智能生成"按钮
+2. 前端发送 POST /study/plan/generate
+3. Controller调用 Service.generateDailyStudyPlan(userId)
+
+4. Service处理流程：
+   ├── 查询未完成的总体计划 {planType='overall', isCompleted=0}
+   ├── 数据库返回计划列表
+   ├── 按优先级↓、难度↓、截止日期↑排序
+   ├── 选取前3个计划
+   │
+   └── 循环处理每个总体计划：
+       ├── 检查并设置totalTasks=totalDays
+       ├── 查询已生成的今日计划数量
+       ├── 数据库返回已生成数量
+       │
+       └── 分支判断：
+           ├── 未超过总天数：
+           │   ├── 计算下一个序号 nextDay = generatedCount + 1
+           │   ├── 创建今日计划 (计划名="总体计划 - 第N天")
+           │   └── INSERT到数据库
+           │
+           └── 已生成完毕：跳过该计划
+
+5. 返回生成的今日计划列表
+6. 前端显示成功提示并刷新列表
+```
+
+**（3）番茄钟完成时序**
+
+```
+用户 → 前端 → Controller → Service → Mapper → 数据库
+
+1. 番茄钟计时结束，前端显示完成提示
+2. 前端发送 PUT /study/tomato/complete/{recordId}
+3. Controller调用 Service.completeTomato(recordId)
+4. Service处理：
+   ├── 查询番茄钟记录
+   ├── 设置status=1(已完成)
+   ├── 设置endTime=当前时间
+   ├── 更新数据库记录
+   └── 返回成功
+5. 前端刷新统计数据和今日记录
+6. 前端切换到休息模式
+7. 显示休息提示
+```
+
+**（4）学习统计数据加载时序**
+
+```
+用户 → 前端 → TomatoController → StatisticsController → 数据库
+
+1. 用户进入学习统计页面
+2. 前端发送 GET /study/tomato/statistics
+3. 后端查询番茄钟统计（今日/本周/本月/总计）
+4. 数据库返回统计数据
+5. 前端发送 GET /study/statistics/summary
+6. 后端执行汇总SQL查询
+7. 数据库返回汇总数据
+8. 前端组装展示数据
+9. 显示统计卡片
+```
+
+#### 6.4.3 架构图
+
+**（1）系统整体架构**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        前端展示层 (Vue.js)                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  Vue.js应用 │ Element UI组件库 │ Axios HTTP客户端 │ Vuex状态管理     │
+│  Vue Router路由                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼ HTTP + JSON (REST API)
+┌─────────────────────────────────────────────────────────────────────┐
+│                      后端服务层 (Spring Boot)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  Controller层                                                        │
+│  ├── StudyPlanController (学习计划接口)                             │
+│  ├── TomatoRecordController (番茄钟接口)                            │
+│  ├── StudyStatisticsController (统计接口)                           │
+│  ├── SysLoginController (登录接口)                                  │
+│  └── SysProfileController (个人信息接口)                            │
+├─────────────────────────────────────────────────────────────────────┤
+│  Service层                                                           │
+│  ├── IStudyPlanService (学习计划服务)                               │
+│  ├── ITomatoRecordService (番茄钟服务)                              │
+│  ├── IStudyStatisticsService (统计服务)                             │
+│  └── SysUserService (用户服务)                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│  Mapper层                                                            │
+│  ├── StudyPlanMapper │ TomatoRecordMapper │ StudyStatisticsMapper   │
+│  └── SysUserMapper                                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│  安全框架                                                            │
+│  ├── Spring Security (安全框架)                                     │
+│  ├── JWT Token (令牌认证)                                           │
+│  └── 权限拦截器                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼ JDBC / MyBatis
+┌─────────────────────────────────────────────────────────────────────┐
+│                        数据存储层 (MySQL 8.0)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  sys_user (用户表) │ study_plan (学习计划表)                        │
+│  tomato_record (番茄钟记录表) │ study_statistics (学习统计表)       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**（2）前端模块架构**
+
+```
+前端应用 (ST-ui)
+│
+├── 视图层
+│   ├── 首页
+│   ├── 学习计划
+│   ├── 番茄钟
+│   ├── 学习统计
+│   ├── 个人中心
+│   └── 登录
+│
+├── 组件层
+│   ├── 番茄钟计时器组件
+│   ├── 计划卡片组件
+│   ├── 统计卡片组件
+│   └── 进度条组件
+│
+├── API层
+│   ├── plan.js (学习计划API)
+│   ├── tomato.js (番茄钟API)
+│   ├── statistics.js (统计API)
+│   └── user.js (用户API)
+│
+├── 工具层
+│   ├── request.js (Axios封装)
+│   ├── auth.js (认证工具)
+│   └── validate.js (验证工具)
+│
+└── 状态管理
+    ├── user模块 (用户状态)
+    ├── app模块 (应用状态)
+    └── permission模块 (权限状态)
+```
+
+**（3）后端分层架构**
+
+```
+后端应用 (ST-admin)
+│
+├── 表现层
+│   ├── REST接口
+│   │   ├── /study/plan (学习计划接口)
+│   │   ├── /study/tomato (番茄钟接口)
+│   │   ├── /study/statistics (统计接口)
+│   │   └── /system/user (用户接口)
+│   │
+│   └── 安全过滤
+│       ├── JWT认证过滤器
+│       └── 权限拦截器
+│
+├── 业务层
+│   ├── IStudyPlanService
+│   ├── ITomatoRecordService
+│   ├── IStudyStatisticsService
+│   └── ISysUserService
+│
+├── 数据访问层
+│   ├── StudyPlanMapper
+│   ├── TomatoRecordMapper
+│   ├── StudyStatisticsMapper
+│   └── SysUserMapper
+│
+└── 领域模型
+    ├── StudyPlan
+    ├── TomatoRecord
+    ├── StudyStatistics
+    └── SysUser
+```
+
+#### 6.4.4 数据流图
+
+**（1）顶层数据流图 (Level 0 DFD)**
+
+```
+┌─────────────┐                    ┌─────────────────────────────┐                    ┌─────────────┐
+│             │  用户信息          │                             │  学习计划数据      │             │
+│    用户     │ ─────────────────► │    个性化学习计划管理系统    │ ◄───────────────► │   数据库    │
+│             │  登录请求          │                             │  番茄钟记录        │             │
+│             │  计划数据          │                             │  统计数据          │             │
+│             │  番茄钟操作        │                             │  用户信息          │             │
+└─────────────┘ ◄─────────────── └─────────────────────────────┘ ─────────────────► └─────────────┘
+                  认证结果                                                              学习计划数据
+                  计划列表                                                              番茄钟记录
+                  统计数据                                                              统计数据
+                  操作反馈                                                              用户信息
+```
+
+**（2）一层数据流图 (Level 1 DFD)**
+
+```
+用户
+ │
+ ├────► 1.0 用户认证 ──────────────────────────────────────► D1 用户信息
+ │            │
+ │            ├── 登录请求(用户名,密码)
+ │            └── 返回认证结果(Token)
+ │
+ ├────► 2.0 学习计划管理 ─────────────────────────────────► D2 学习计划
+ │            │
+ │            ├── 计划操作(创建/编辑/删除)
+ │            ├── 计划数据读写
+ │            └── 返回计划列表
+ │
+ ├────► 3.0 番茄钟计时 ───────────────────────────────────► D3 番茄钟记录
+ │            │
+ │            ├── 番茄钟操作(开始/暂停/完成)
+ │            ├── 记录数据读写
+ │            ├── 更新D4统计数据
+ │            └── 返回计时状态
+ │
+ └────► 4.0 数据统计 ─────────────────────────────────────► D4 统计数据
+              │
+              ├── 查询D2计划
+              ├── 查询D3记录
+              ├── 查询D4统计
+              └── 返回统计报表
+```
+
+**（3）二层数据流图 - 学习计划管理 (Level 2 DFD)**
+
+```
+用户
+ │
+ ├────► 2.1 创建计划
+ │            │
+ │            ├── 接收计划信息(名称,学科,日期等)
+ │            ├── 存储到D2学习计划
+ │            └── 返回创建结果
+ │
+ ├────► 2.2 编辑计划
+ │            │
+ │            ├── 接收修改信息(计划ID,更新数据)
+ │            ├── 更新D2学习计划
+ │            └── 返回修改结果
+ │
+ ├────► 2.3 删除计划
+ │            │
+ │            ├── 接收计划ID
+ │            ├── 从D2删除计划
+ │            └── 返回删除结果
+ │
+ ├────► 2.4 智能生成
+ │            │
+ │            ├── 接收生成请求
+ │            ├── 查询D2总体计划
+ │            ├── 排序筛选处理
+ │            ├── 存储今日计划到D2
+ │            └── 返回生成结果
+ │
+ ├────► 2.5 完成计划
+ │            │
+ │            ├── 接收计划ID
+ │            ├── 更新D2状态为已完成
+ │            └── 返回完成结果
+ │
+ └────► 2.6 查询计划
+              │
+              ├── 接收查询条件(类型,状态)
+              ├── 查询D2学习计划
+              └── 返回计划列表
+```
+
+**（4）二层数据流图 - 番茄钟计时 (Level 2 DFD)**
+
+```
+用户
+ │
+ ├────► 3.1 开始番茄钟
+ │            │
+ │            ├── 接收开始请求(计划ID,时长)
+ │            ├── 关联D2学习计划
+ │            ├── 创建记录到D3(status=0)
+ │            └── 返回计时开始
+ │
+ ├────► 3.2 暂停/恢复
+ │            │
+ │            ├── 接收暂停/恢复请求
+ │            ├── 更新D3记录状态
+ │            └── 返回状态更新
+ │
+ ├────► 3.3 完成番茄钟
+ │            │
+ │            ├── 接收完成通知
+ │            ├── 更新D3记录(status=1,endTime)
+ │            ├── 更新D4今日统计
+ │            └── 返回完成提示+休息建议
+ │
+ ├────► 3.4 放弃番茄钟
+ │            │
+ │            ├── 接收放弃请求
+ │            ├── 更新D3记录(status=4)
+ │            └── 返回放弃确认
+ │
+ └────► 3.5 查询记录
+              │
+              ├── 接收查询请求(日期范围)
+              ├── 查询D3记录
+              └── 返回记录列表
+```
+
+#### 6.4.5 类图
+
+**（1）实体类**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                          StudyPlan (学习计划)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│ - planId: Long              # 计划ID（主键）                        │
+│ - userId: Long              # 用户ID（外键）                        │
+│ - planName: String          # 计划名称                              │
+│ - planType: String          # 计划类型(overall多日/today今日)        │
+│ - parentPlanId: Long        # 父计划ID（关联多日计划）               │
+│ - subject: String           # 学科                                  │
+│ - difficulty: Integer       # 难度(1-5)                             │
+│ - priority: Integer         # 优先级(1-5)                           │
+│ - startDate: Date           # 开始日期                              │
+│ - endDate: Date             # 结束日期                              │
+│ - deadline: Date            # 截止时间                              │
+│ - progress: Integer         # 进度百分比(0-100)                     │
+│ - status: String            # 状态(0进行中/1已完成/2已取消)          │
+│ - totalTasks: Integer       # 总任务数                              │
+│ - completedTasks: Integer   # 已完成任务数                          │
+│ - isCompleted: Integer      # 是否完成(0未完成/1已完成)              │
+│ - isTemplate: Integer       # 是否模板(0否/1是)                     │
+├─────────────────────────────────────────────────────────────────────┤
+│ + getPlanId(): Long                                                   │
+│ + setPlanId(Long): void                                              │
+│ + getProgress(): Integer                                             │
+│ + setProgress(Integer): void                                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                       TomatoRecord (番茄钟记录)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│ - recordId: Long            # 记录ID（主键）                         │
+│ - userId: Long              # 用户ID（外键）                         │
+│ - planId: Long              # 关联计划ID                             │
+│ - tomatoDuration: Integer   # 番茄钟时长（分钟）                     │
+│ - restDuration: Integer     # 休息时长（分钟）                       │
+│ - startTime: Date           # 开始时间                               │
+│ - endTime: Date             # 结束时间                               │
+│ - status: String            # 状态(0进行中/1已完成/2已中断/3已暂停/4已放弃) │
+├─────────────────────────────────────────────────────────────────────┤
+│ + getRecordId(): Long                                                 │
+│ + setRecordId(Long): void                                            │
+│ + complete(): void                                                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      StudyStatistics (学习统计)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│ - statId: Long              # 统计ID（主键）                         │
+│ - userId: Long              # 用户ID（外键）                         │
+│ - studyDate: Date           # 学习日期                               │
+│ - planTimeSpent: Integer    # 计划学习时长(分钟)                     │
+│ - tomatoTimeSpent: Integer  # 番茄钟学习时长(分钟)                   │
+│ - totalTimeSpent: Integer   # 总学习时长(分钟)                       │
+│ - completedPlans: Integer   # 完成计划数                             │
+├─────────────────────────────────────────────────────────────────────┤
+│ + getStatId(): Long                                                   │
+│ + setStatId(Long): void                                              │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                           SysUser (用户)                             │
+├─────────────────────────────────────────────────────────────────────┤
+│ - userId: Long              # 用户ID（主键）                         │
+│ - userName: String          # 用户名                                 │
+│ - nickName: String          # 昵称                                   │
+│ - email: String             # 邮箱                                   │
+│ - phonenumber: String       # 手机号                                 │
+│ - sex: String               # 性别                                   │
+│ - avatar: String            # 头像                                   │
+│ - password: String          # 密码                                   │
+│ - status: String            # 状态                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ + getUserId(): Long                                                   │
+│ + setUserId(Long): void                                              │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**（2）Service接口**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    <<interface>> IStudyPlanService                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ + selectStudyPlanByPlanId(Long): StudyPlan                           │
+│ + selectStudyPlanList(StudyPlan): List<StudyPlan>                    │
+│ + insertStudyPlan(StudyPlan): int                                    │
+│ + updateStudyPlan(StudyPlan): int                                    │
+│ + deleteStudyPlanByPlanIds(Long[]): int                              │
+│ + generateDailyStudyPlan(Long): List<StudyPlan>                      │
+│ + completeStudyPlan(Long, Double): int                               │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                   <<interface>> ITomatoRecordService                 │
+├─────────────────────────────────────────────────────────────────────┤
+│ + selectTomatoRecordByRecordId(Long): TomatoRecord                   │
+│ + selectTomatoRecordList(TomatoRecord): List<TomatoRecord>           │
+│ + insertTomatoRecord(TomatoRecord): int                              │
+│ + updateTomatoRecord(TomatoRecord): int                              │
+│ + startTomato(Long, Long, Integer, Integer): TomatoRecord            │
+│ + completeTomato(Long): int                                          │
+│ + countTodayCompletedTomatoByUserId(Long): int                       │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                  <<interface>> IStudyStatisticsService               │
+├─────────────────────────────────────────────────────────────────────┤
+│ + selectStudyStatisticsByStatId(Long): StudyStatistics               │
+│ + selectStudySummaryByUserId(Long): Map<String, Object>              │
+│ + updateDailyStudyStatistics(Long, Integer, Integer, Integer): int   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**（3）类关系**
+
+```
+SysUser "1" ──────► "*" StudyPlan      : 拥有
+SysUser "1" ──────► "*" TomatoRecord   : 创建
+SysUser "1" ──────► "*" StudyStatistics : 统计
+StudyPlan "1" ────► "*" TomatoRecord   : 关联
+StudyPlan "1" ────► "*" StudyPlan      : 父子关系
+
+IStudyPlanService ──────► StudyPlan      : 使用
+ITomatoRecordService ───► TomatoRecord   : 使用
+IStudyStatisticsService ► StudyStatistics: 使用
+```
+
+#### 6.4.6 ER图
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    数据库实体关系图                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────┐
+│     sys_user        │
+├─────────────────────┤
+│ *user_id : BIGINT   │ ← 主键
+│ user_name : VARCHAR │
+│ nick_name : VARCHAR │
+│ email : VARCHAR     │
+│ phonenumber : VARCHAR│
+│ sex : CHAR          │
+│ avatar : VARCHAR    │
+│ password : VARCHAR  │
+│ status : CHAR       │
+│ create_time : DATETIME│
+└─────────┬───────────┘
+          │
+          │ 1
+          │
+          ├──────────────────────────────────────────────────────────────┐
+          │                                                              │
+          │ *                                                            │ *
+          ▼                                                              ▼
+┌─────────────────────┐                                      ┌─────────────────────┐
+│    study_plan       │                                      │   tomato_record     │
+├─────────────────────┤                                      ├─────────────────────┤
+│ *plan_id : BIGINT   │ ← 主键                               │ *record_id : BIGINT │ ← 主键
+│ user_id : BIGINT    │ ← 外键 → sys_user.user_id            │ user_id : BIGINT    │ ← 外键 → sys_user.user_id
+│ plan_name : VARCHAR │                                      │ plan_id : BIGINT    │ ← 外键 → study_plan.plan_id
+│ plan_type : VARCHAR │                                      │ tomato_duration : INT│
+│ parent_plan_id : BIGINT│ ← 外键 → study_plan.plan_id       │ rest_duration : INT │
+│ subject : VARCHAR   │                                      │ start_time : DATETIME│
+│ difficulty : INT    │                                      │ end_time : DATETIME │
+│ priority : INT      │                                      │ status : CHAR       │
+│ start_date : DATE   │                                      │ create_time : DATETIME│
+│ end_date : DATE     │                                      └─────────────────────┘
+│ deadline : DATETIME │
+│ estimated_hours : DECIMAL│
+│ actual_hours : DECIMAL│
+│ progress : INT      │
+│ status : CHAR       │
+│ total_tasks : INT   │
+│ completed_tasks : INT│
+│ is_completed : INT  │
+│ is_template : INT   │
+│ create_time : DATETIME│
+│ update_time : DATETIME│
+└─────────────────────┘
+          │
+          │ 自关联（父子计划）
+          │
+          ▼
+    study_plan (自身)
+
+
+┌─────────────────────┐
+│  study_statistics   │
+├─────────────────────┤
+│ *stat_id : BIGINT   │ ← 主键
+│ user_id : BIGINT    │ ← 外键 → sys_user.user_id
+│ study_date : DATE   │
+│ total_study_time : INT│
+│ tomato_count : INT  │
+│ completed_plans : INT│
+│ subject_distribution : TEXT│
+│ create_time : DATETIME│
+│ update_time : DATETIME│
+└─────────────────────┘
+          ▲
+          │ *
+          │
+          │ 1
+          │
+┌─────────────────────┐
+│     sys_user        │
+└─────────────────────┘
+
+关系说明：
+- sys_user 1:N study_plan      一个用户可以有多个学习计划
+- sys_user 1:N tomato_record   一个用户可以有多个番茄钟记录
+- sys_user 1:N study_statistics 一个用户可以有多条统计记录
+- study_plan 1:N tomato_record 一个计划可以关联多个番茄钟
+- study_plan 1:N study_plan    一个总体计划可以有多个子计划（自关联）
+```
+
 ---
 
 ## 七、详细设计

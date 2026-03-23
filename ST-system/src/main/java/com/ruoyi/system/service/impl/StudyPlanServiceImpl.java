@@ -203,6 +203,10 @@ public class StudyPlanServiceImpl implements IStudyPlanService
         if (overallPlans.isEmpty()) {
             return new java.util.ArrayList<>();
         }
+        
+        // 打印调试信息
+        System.out.println("=== 智能生成今日计划 ===");
+        System.out.println("找到 " + overallPlans.size() + " 个未完成的总体计划");
             
         // 按优先级降序、难度降序、截止日期升序排列
         java.util.Date today = new java.util.Date();
@@ -238,64 +242,79 @@ public class StudyPlanServiceImpl implements IStudyPlanService
         List<StudyPlan> todayPlans = new java.util.ArrayList<>();
         for (int i = 0; i < Math.min(3, sortedPlans.size()); i++) {
             StudyPlan overall = sortedPlans.get(i);
+            
+            System.out.println("处理总体计划: " + overall.getPlanName() + " (ID: " + overall.getPlanId() + ")");
                 
-            // 获取总体计划的天数
-            Integer totalDays = overall.getTotalDays() != null ? overall.getTotalDays() : 1;
-                
-            // 检查该总体计划已经生成了多少个今日计划
+            // 从日期范围计算天数（强制重新计算）
+            Integer totalDays = 1;
+            if (overall.getStartDate() != null && overall.getEndDate() != null) {
+                long diffTime = overall.getEndDate().getTime() - overall.getStartDate().getTime();
+                totalDays = (int) (diffTime / (1000 * 60 * 60 * 24)) + 1; // 包含首尾两天
+            }
+            
+            // 更新数据库中的 totalDays 和 totalTasks
+            overall.setTotalDays(totalDays);
+            if (overall.getTotalTasks() == null || overall.getTotalTasks() == 0) {
+                overall.setTotalTasks(totalDays);
+                overall.setCompletedTasks(0);
+            }
+            studyPlanMapper.updateStudyPlan(overall);
+            System.out.println("计算天数: startDate=" + overall.getStartDate() + ", endDate=" + overall.getEndDate() + ", totalDays=" + totalDays);
+            
+            // 检查该总体计划已经生成了多少个今日计划（包括已完成和未完成的）
+            // 注意：不设置 planType，避免触发 Mapper 中的日期过滤条件
             StudyPlan queryToday = new StudyPlan();
             queryToday.setUserId(userId);
-            queryToday.setPlanType("today");
             queryToday.setParentPlanId(overall.getPlanId());
             List<StudyPlan> existingTodayPlans = studyPlanMapper.selectStudyPlanList(queryToday);
             int generatedCount = existingTodayPlans.size();
+            
+            System.out.println("已生成今日计划数量: " + generatedCount + ", 总天数: " + totalDays);
                 
             // 如果已经生成够了，跳过这个总体计划
             if (generatedCount >= totalDays) {
+                System.out.println("该计划已生成完毕，跳过");
                 continue;
             }
+            
+            // 只生成今天的计划（下一个序号的计划）
+            int nextDay = generatedCount + 1;
+            
+            // 创建今日计划
+            StudyPlan todayPlan = new StudyPlan();
+            todayPlan.setUserId(userId);
+            todayPlan.setPlanName(overall.getPlanName() + " - 第" + nextDay + "天");
+            todayPlan.setPlanType("today");
+            todayPlan.setParentPlanId(overall.getPlanId()); // 关联到总体计划
+            todayPlan.setStartDate(sqlToday);
+            todayPlan.setEndDate(sqlToday);
+            todayPlan.setSubject(overall.getSubject());
+            todayPlan.setDescription(overall.getDescription());
+            todayPlan.setLearningGoals(overall.getLearningGoals());
+            todayPlan.setDifficulty(overall.getDifficulty());
+            todayPlan.setPriority(overall.getPriority());
+            todayPlan.setEstimatedHours(overall.getEstimatedHours() != null ? 
+                overall.getEstimatedHours().divide(new java.math.BigDecimal(totalDays), 2, java.math.BigDecimal.ROUND_HALF_UP) : 
+                new java.math.BigDecimal(2));
+            todayPlan.setStatus("0");
+            todayPlan.setIsCompleted(0);
+            todayPlan.setProgress(0);
+            todayPlan.setTotalTasks(1);
+            todayPlan.setCompletedTasks(0);
+            todayPlan.setIsTemplate(0);
+            todayPlan.setCreateTime(new Date());
+            todayPlan.setUpdateTime(new Date());
                 
-            // 生成剩余的今日计划
-            for (int day = generatedCount + 1; day <= totalDays; day++) {
-                // 计算这一天的日期（从今天开始往后推）
-                java.util.Calendar calendar = java.util.Calendar.getInstance();
-                calendar.setTime(sqlToday);
-                calendar.add(java.util.Calendar.DAY_OF_MONTH, day - 1);
-                java.sql.Date planDate = new java.sql.Date(calendar.getTimeInMillis());
-                    
-                // 创建今日计划
-                StudyPlan todayPlan = new StudyPlan();
-                todayPlan.setUserId(userId);
-                todayPlan.setPlanName(overall.getPlanName() + " - 第" + day + "天");
-                todayPlan.setPlanType("today");
-                todayPlan.setParentPlanId(overall.getPlanId()); // 关联到总体计划
-                todayPlan.setStartDate(planDate);
-                todayPlan.setEndDate(planDate);
-                todayPlan.setSubject(overall.getSubject());
-                todayPlan.setDescription(overall.getDescription());
-                todayPlan.setLearningGoals(overall.getLearningGoals());
-                todayPlan.setDifficulty(overall.getDifficulty());
-                todayPlan.setPriority(overall.getPriority());
-                todayPlan.setEstimatedHours(overall.getEstimatedHours() != null ? 
-                    overall.getEstimatedHours().divide(new java.math.BigDecimal(totalDays), 2, java.math.BigDecimal.ROUND_HALF_UP) : 
-                    new java.math.BigDecimal(2));
-                todayPlan.setStatus("0");
-                todayPlan.setIsCompleted(0);
-                todayPlan.setProgress(0);
-                todayPlan.setTotalTasks(1);
-                todayPlan.setCompletedTasks(0);
-                todayPlan.setIsTemplate(0);
-                todayPlan.setCreateTime(new Date());
-                todayPlan.setUpdateTime(new Date());
-                    
-                todayPlans.add(todayPlan);
-            }
+            todayPlans.add(todayPlan);
+            System.out.println("生成今日计划: " + todayPlan.getPlanName());
         }
             
         // 批量插入今日计划
         for (StudyPlan plan : todayPlans) {
             studyPlanMapper.insertStudyPlan(plan);
         }
+        
+        System.out.println("共生成 " + todayPlans.size() + " 个今日计划");
             
         return todayPlans;
     }

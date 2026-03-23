@@ -441,27 +441,30 @@ export default {
       // 先从番茄钟统计获取番茄钟数据
       getTomatoStatistics().then(tomatoRes => {
         const tomatoData = tomatoRes.data || {};
+        console.log('番茄钟统计数据:', tomatoData);
         
         // 然后从学习统计获取其他数据
         getStudyStatistics().then(response => {
           const data = response.data || {};
-          // study_hours 是分钟数
-          const studyMinutes = data.study_hours || 0;
-          this.metrics[0].value = this.formatTime(studyMinutes);
+          console.log('学习统计数据:', data);
+          // plan_count 是计划数量，study_hours 是今日学习分钟数，completed_tasks 是今日完成的番茄钟数
+          this.metrics[0].value = this.formatTime(data.study_hours || 0);
           // 番茄钟数量从番茄钟统计获取
           this.metrics[1].value = (tomatoData.totalCount || 0) + '个';
           // 完成任务数
           this.metrics[2].value = (data.completed_tasks || 0) + '个';
           // 平均效率
           this.metrics[3].value = (data.average_efficiency || 0) + '分';
-        }).catch(() => {
+        }).catch((err) => {
+          console.error('学习统计接口错误:', err);
           // 使用番茄钟数据
           this.metrics[0].value = '0分钟';
           this.metrics[1].value = (tomatoData.totalCount || 0) + '个';
           this.metrics[2].value = '0个';
           this.metrics[3].value = '0分';
         });
-      }).catch(() => {
+      }).catch((err) => {
+        console.error('番茄钟统计接口错误:', err);
         // 新用户没有数据，显示默认值
         this.metrics = [
           { key: 'totalStudyTime', label: '总学习时长', value: '0分钟', icon: 'el-icon-time', color: '#409EFF', change: 0 },

@@ -254,7 +254,7 @@
 </template>
 
 <script>
-import { getTomatoStatistics, getTodayTomatoRecords, startTomato, pauseTomato, resumeTomato, completeTomato, abandonTomato } from "@/api/study/tomato";
+import { getTomatoStatistics, getTodayTomatoRecords, startTomato, pauseTomato, resumeTomato, completeTomato, abandonTomato, forceStopActiveTomato } from "@/api/study/tomato";
 import { listStudyPlan, updateStudyPlan } from "@/api/study/plan";
 
 export default {
@@ -419,10 +419,15 @@ export default {
     /** 加载今日记录 */
     loadTodayRecords() {
       getTodayTomatoRecords().then(response => {
+        console.log('=== 今日番茄钟记录响应 ===');
+        console.log('完整响应:', response);
+        console.log('response.data:', response.data);
         // 后端返回数据在 data 字段中
         this.historyRecords = response.data || [];
+        console.log('historyRecords:', this.historyRecords);
         this.calculateTodayStats();
-      }).catch(() => {
+      }).catch((error) => {
+        console.error('加载今日记录失败:', error);
         // 新用户没有记录，显示空列表
         this.historyRecords = [];
         this.calculateTodayStats();
@@ -430,15 +435,26 @@ export default {
     },
     /** 计算今日统计 */
     calculateTodayStats() {
+      console.log('=== 计算今日统计 ===');
+      console.log('historyRecords 数量:', this.historyRecords.length);
       // status: 1=已完成, 使用数字比较
-      const completed = this.historyRecords.filter(r => r.status === 1 || r.status === '1').length;
-      const totalTime = this.historyRecords.reduce((sum, r) => sum + (r.tomatoDuration || r.duration || 0), 0);
+      const completed = this.historyRecords.filter(r => {
+        console.log('记录状态:', r.status, '类型:', typeof r.status);
+        return r.status === 1 || r.status === '1';
+      }).length;
+      const totalTime = this.historyRecords.reduce((sum, r) => {
+        const duration = r.tomatoDuration || r.duration || 0;
+        console.log('记录时长:', duration);
+        return sum + duration;
+      }, 0);
+      console.log('completed:', completed, 'totalTime:', totalTime);
       // 强制触发 Vue 响应式更新
       this.$set(this, 'todayStats', {
         completed,
         totalTime,
         interruptions: this.historyRecords.length - completed
       });
+      console.log('todayStats 已更新:', this.todayStats);
     },
     /** 加载学习计划 */
     loadPlans() {
@@ -497,28 +513,49 @@ export default {
         this.totalTime = this.settings.restDuration * 60;
       }
       
+      // 后端期望的参数格式
       const requestData = {
         planId: this.taskForm.planId,
-        totalTime: this.timerMode === 'focus' ? this.settings.tomatoDuration : this.settings.restDuration,
+        tomatoDuration: this.settings.tomatoDuration,
+        restDuration: this.settings.restDuration
       };
       
-      startTomato(requestData).then(response => {
-        this.currentRecord = response.data;
-        this.isRunning = true;
-        this.isPaused = false;
-        this.startCountdown();
-        this.$message.success(`${this.timerMode === 'focus' ? '专注' : '休息'}已开始`);
-      }).catch(() => {
-        // 模拟开始
-        this.currentRecord = {
-          recordId: Date.now(),
-          taskTitle: this.timerMode === 'focus' ? '专注学习' : '休息',
-          status: '0',
-          elapsedTime: 0
-        };
-        this.isRunning = true;
-        this.isPaused = false;
-        this.startCountdown();
+      console.log('=== 开始番茄钟请求 ===');
+      console.log('请求数据:', requestData);
+      
+      // 先强制中断已有的进行中番茄钟，再开始新的
+      forceStopActiveTomato().then(() => {
+        console.log('已清理进行中的番茄钟');
+        
+        startTomato(requestData).then(response => {
+          console.log('=== 番茄钟开始成功 ===');
+          console.log('后端返回数据:', response.data);
+          this.currentRecord = response.data;
+          console.log('currentRecord.recordId:', this.currentRecord ? this.currentRecord.recordId : 'null');
+          this.isRunning = true;
+          this.isPaused = false;
+          this.startCountdown();
+          this.$message.success(`${this.timerMode === 'focus' ? '专注' : '休息'}已开始`);
+          // 刷新今日记录
+          this.loadTodayRecords();
+        }).catch((error) => {
+          console.error('=== 开始番茄钟失败 ===');
+          console.error('错误信息:', error);
+          this.$message.error('开始番茄钟失败，请稍后重试');
+        });
+      }).catch((error) => {
+        console.error('清理进行中番茄钟失败:', error);
+        // 即使清理失败，也尝试开始
+        startTomato(requestData).then(response => {
+          this.currentRecord = response.data;
+          this.isRunning = true;
+          this.isPaused = false;
+          this.startCountdown();
+          this.$message.success(`${this.timerMode === 'focus' ? '专注' : '休息'}已开始`);
+        }).catch((error) => {
+          console.error('开始番茄钟失败:', error);
+          this.$message.error('开始番茄钟失败，请稍后重试');
+        });
       });
     },
     /** 开始倒计时 */
@@ -575,21 +612,31 @@ export default {
         }
         
         const recordId = this.currentRecord ? this.currentRecord.recordId : null;
-        completeTomato(recordId).then(() => {
-          console.log('番茄钟已完成');
-          // 清除当前记录
+        console.log('=== 完成番茄钟 ===');
+        console.log('recordId:', recordId);
+        
+        if (recordId) {
+          completeTomato(recordId).then(() => {
+            console.log('番茄钟已完成');
+            // 清除当前记录
+            this.currentRecord = null;
+            // 刷新统计数据
+            this.loadStatistics();
+            this.loadTodayRecords();
+          }).catch((error) => {
+            console.error('完成番茄钟失败:', error);
+            // 清除当前记录
+            this.currentRecord = null;
+            // 仍然刷新统计
+            this.loadStatistics();
+            this.loadTodayRecords();
+          });
+        } else {
+          console.warn('没有有效的 recordId，跳过后端完成调用');
           this.currentRecord = null;
-          // 刷新统计数据
           this.loadStatistics();
           this.loadTodayRecords();
-        }).catch(() => {
-          console.log('本地完成记录');
-          // 清除当前记录
-          this.currentRecord = null;
-          // 本地也要刷新统计
-          this.loadStatistics();
-          this.loadTodayRecords();
-        });
+        }
         
         // 决定下一个阶段 - 自动跳转休息（不自动开始）
         this.timerMode = 'break';

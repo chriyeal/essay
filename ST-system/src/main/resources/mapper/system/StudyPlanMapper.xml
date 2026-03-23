@@ -42,7 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="userId != null "> and user_id = #{userId}</if>
             <if test="planName != null  and planName != ''"> and plan_name like concat('%', #{planName}, '%')</if>
             <if test="planType != null  and planType != ''"> and plan_type = #{planType}</if>
-            <if test="planType == 'today'"> and start_date = CURDATE()</if>
+            <if test="planType == 'today' and parentPlanId == null"> and start_date = CURDATE()</if>
             <if test="parentPlanId != null "> and parent_plan_id = #{parentPlanId}</if>
             <if test="startDate != null "> and start_date = #{startDate}</if>
             <if test="endDate != null "> and end_date = #{endDate}</if>

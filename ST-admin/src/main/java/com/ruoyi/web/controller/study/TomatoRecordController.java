@@ -133,14 +133,27 @@ public class TomatoRecordController extends BaseController
     public AjaxResult startTomato(@RequestBody TomatoStartRequest request)
     {
         try {
+            System.out.println("=== 启动番茄钟请求 ===");
+            System.out.println("planId: " + request.getPlanId());
+            System.out.println("tomatoDuration: " + request.getTomatoDuration());
+            System.out.println("restDuration: " + request.getRestDuration());
+            
             TomatoRecord record = tomatoRecordService.startTomato(
                 SecurityUtils.getUserId(),
                 request.getPlanId(),
                 request.getTomatoDuration(),
                 request.getRestDuration()
             );
+            
+            System.out.println("=== 番茄钟创建成功 ===");
+            System.out.println("recordId: " + record.getRecordId());
+            System.out.println("userId: " + record.getUserId());
+            System.out.println("tomatoDuration: " + record.getTomatoDuration());
+            
             return AjaxResult.success(record);
         } catch (Exception e) {
+            System.out.println("=== 启动番茄钟失败 ===");
+            e.printStackTrace();
             return AjaxResult.error(e.getMessage());
         }
     }
@@ -253,6 +266,28 @@ public class TomatoRecordController extends BaseController
     {
         TomatoRecord record = tomatoRecordService.getActiveTomato(SecurityUtils.getUserId());
         return AjaxResult.success(record);
+    }
+
+    /**
+     * 强制中断所有进行中的番茄钟
+     */
+    @PutMapping("/force-stop")
+    public AjaxResult forceStopActiveTomato()
+    {
+        try {
+            TomatoRecord activeRecord = tomatoRecordService.getActiveTomato(SecurityUtils.getUserId());
+            if (activeRecord != null) {
+                System.out.println("=== 强制中断进行中的番茄钟 ===");
+                System.out.println("recordId: " + activeRecord.getRecordId());
+                tomatoRecordService.abandonTomato(activeRecord.getRecordId());
+                return AjaxResult.success("已中断之前的番茄钟，可以开始新的了");
+            }
+            return AjaxResult.success("没有进行中的番茄钟");
+        } catch (Exception e) {
+            System.out.println("=== 强制中断失败 ===");
+            e.printStackTrace();
+            return AjaxResult.error("中断失败: " + e.getMessage());
+        }
     }
 
     /**

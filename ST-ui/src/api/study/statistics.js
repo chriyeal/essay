@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 
-// 获取学习统计汇总
+// 获取学习统计汇总（今日数据）
 export function getStudyStatistics() {
   return request({
     url: '/study/statistics/summary',
@@ -9,20 +9,20 @@ export function getStudyStatistics() {
 }
 
 // 获取学习趋势数据
-export function getStudyTrends(query) {
+export function getStudyTrends(days) {
   return request({
     url: '/study/statistics/trend',
     method: 'get',
-    params: query
+    params: { days }
   })
 }
 
 // 获取学科分布数据
-export function getSubjectDistribution(date) {
+export function getSubjectDistribution(startDate, endDate) {
   return request({
     url: '/study/statistics/distribution',
     method: 'get',
-    params: { date }
+    params: { startDate, endDate }
   })
 }
 
@@ -61,20 +61,21 @@ export function exportStudyData() {
   })
 }
 
-// 获取时间分布数据
-export function getTimeDistribution(date) {
+// 获取时间分布数据（按小时）
+export function getTimeDistribution(startDate, endDate) {
   return request({
-    url: '/study/statistics/distribution',
+    url: '/study/statistics/time-distribution',
     method: 'get',
-    params: { date }
+    params: { startDate, endDate }
   })
 }
 
 // 获取效率分析数据
-export function getEfficiencyAnalysis() {
+export function getEfficiencyAnalysis(studyDate) {
   return request({
     url: '/study/statistics/productivity',
-    method: 'get'
+    method: 'get',
+    params: { studyDate }
   })
 }
 

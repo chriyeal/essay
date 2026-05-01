@@ -29,17 +29,13 @@ public class StudyStatistics extends BaseEntity
     @Excel(name = "学习日期", width = 30, dateFormat = "yyyy-MM-dd")
     private Date studyDate;
 
-    /** 计划学习时长(分钟) */
-    @Excel(name = "计划学习时长")
-    private Integer planTimeSpent;
-
-    /** 番茄钟学习时长(分钟) */
-    @Excel(name = "番茄钟学习时长")
-    private Integer tomatoTimeSpent;
-
     /** 总学习时长(分钟) */
     @Excel(name = "总学习时长")
     private Integer totalTimeSpent;
+
+    /** 番茄钟数量 */
+    @Excel(name = "番茄钟数量")
+    private Integer tomatoTimeSpent;
 
     /** 完成计划数 */
     @Excel(name = "完成计划数")
@@ -76,14 +72,14 @@ public class StudyStatistics extends BaseEntity
     {
         return studyDate;
     }
-    public void setPlanTimeSpent(Integer planTimeSpent) 
+    public void setTotalTimeSpent(Integer totalTimeSpent) 
     {
-        this.planTimeSpent = planTimeSpent;
+        this.totalTimeSpent = totalTimeSpent;
     }
 
-    public Integer getPlanTimeSpent() 
+    public Integer getTotalTimeSpent() 
     {
-        return planTimeSpent;
+        return totalTimeSpent;
     }
     public void setTomatoTimeSpent(Integer tomatoTimeSpent) 
     {
@@ -93,15 +89,6 @@ public class StudyStatistics extends BaseEntity
     public Integer getTomatoTimeSpent() 
     {
         return tomatoTimeSpent;
-    }
-    public void setTotalTimeSpent(Integer totalTimeSpent) 
-    {
-        this.totalTimeSpent = totalTimeSpent;
-    }
-
-    public Integer getTotalTimeSpent() 
-    {
-        return totalTimeSpent;
     }
     public void setCompletedPlans(Integer completedPlans) 
     {
@@ -128,9 +115,8 @@ public class StudyStatistics extends BaseEntity
             .append("statId", getStatId())
             .append("userId", getUserId())
             .append("studyDate", getStudyDate())
-            .append("planTimeSpent", getPlanTimeSpent())
-            .append("tomatoTimeSpent", getTomatoTimeSpent())
             .append("totalTimeSpent", getTotalTimeSpent())
+            .append("tomatoTimeSpent", getTomatoTimeSpent())
             .append("completedPlans", getCompletedPlans())
             .append("subjectDistribution", getSubjectDistribution())
             .append("createTime", getCreateTime())

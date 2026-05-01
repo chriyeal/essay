@@ -2,6 +2,7 @@ package com.ruoyi.system.service;
 
 import com.ruoyi.system.domain.StudyStatistics;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 学习统计数据Service接口
@@ -82,7 +83,7 @@ public interface IStudyStatisticsService
      * @param userId 用户 ID
      * @return 学习统计数据
      */
-    public java.util.Map<String, Object> selectStudySummaryByUserId(Long userId);
+    public Map<String, Object> selectStudySummaryByUserId(Long userId);
 
     /**
      * 更新用户当日学习统计数据
@@ -96,22 +97,33 @@ public interface IStudyStatisticsService
     public int updateDailyStudyStatistics(Long userId, Integer planTimeSpent, Integer tomatoTimeSpent, Integer completedPlans);
 
     /**
-     * 生成学习趋势数据
+     * 查询学习趋势数据
      * 
      * @param userId 用户ID
      * @param days 天数
      * @return 趋势数据
      */
-    public List<StudyStatistics> generateStudyTrendData(Long userId, Integer days);
+    public List<Map<String, Object>> getStudyTrendData(Long userId, Integer days);
 
     /**
-     * 生成学习时间分布数据
+     * 查询学科学习时长分布
      * 
      * @param userId 用户ID
-     * @param date 日期
+     * @param startDate 开始日期
+     * @param endDate 结束日期
      * @return 分布数据
      */
-    public String generateTimeDistributionData(Long userId, String date);
+    public List<Map<String, Object>> getSubjectDistributionData(Long userId, String startDate, String endDate);
+
+    /**
+     * 查询学习时间按小时分布
+     * 
+     * @param userId 用户ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 时间分布数据
+     */
+    public List<Map<String, Object>> getTimeDistributionData(Long userId, String startDate, String endDate);
 
     /**
      * 计算学习效率评分

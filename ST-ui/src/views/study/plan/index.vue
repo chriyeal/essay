@@ -61,6 +61,7 @@
           <el-option label="进行中" value="0"></el-option>
           <el-option label="已完成" value="1"></el-option>
           <el-option label="已取消" value="2"></el-option>
+          <el-option label="未完成" value="3"></el-option>
         </el-select>
         <el-button type="primary" icon="el-icon-search" @click="handleQuery">搜索</el-button>
       </div>
@@ -801,12 +802,14 @@ export default {
       const types = {
         '0': 'primary',
         '1': 'success',
-        '2': 'info'
+        '2': 'info',
+        '3': 'danger'
       };
       const texts = {
         '0': '进行中',
         '1': '已完成',
-        '2': '已取消'
+        '2': '已取消',
+        '3': '未完成'
       };
       return h('el-tag', { props: { type: types[status] || 'info', size: 'small' } }, texts[status] || '未知');
     },
@@ -855,7 +858,8 @@ export default {
       const types = {
         '0': 'primary',  // 进行中
         '1': 'success',  // 已完成
-        '2': 'info'      // 已取消
+        '2': 'info',     // 已取消
+        '3': 'danger'    // 未完成（超期）
       };
       return types[status] || 'info';
     },
@@ -864,7 +868,8 @@ export default {
       const texts = {
         '0': '进行中',
         '1': '已完成',
-        '2': '已取消'
+        '2': '已取消',
+        '3': '未完成'
       };
       return texts[status] || '未知';
     }

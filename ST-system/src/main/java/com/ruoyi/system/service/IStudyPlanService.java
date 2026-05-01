@@ -107,4 +107,12 @@ public interface IStudyPlanService
      * @return 统计结果
      */
     public java.util.Map<String, Object> getPlanSummary(Long userId);
+
+    /**
+     * 更新超期未完成的学习计划状态
+     * 
+     * @param userId 用户ID
+     * @return 更新的记录数
+     */
+    public int updateExpiredPlans(Long userId);
 }

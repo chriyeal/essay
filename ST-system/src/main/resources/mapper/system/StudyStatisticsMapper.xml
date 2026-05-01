@@ -8,9 +8,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="statId"    column="stat_id"    />
         <result property="userId"    column="user_id"    />
         <result property="studyDate"    column="study_date"    />
-        <result property="planTimeSpent"    column="total_study_time"    />
-        <result property="tomatoTimeSpent"    column="tomato_count"    />
         <result property="totalTimeSpent"    column="total_study_time"    />
+        <result property="tomatoTimeSpent"    column="tomato_count"    />
         <result property="completedPlans"    column="completed_plans"    />
         <result property="subjectDistribution"    column="subject_distribution"    />
         <result property="createTime"    column="create_time"    />
@@ -26,9 +25,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <where>  
             <if test="userId != null "> and user_id = #{userId}</if>
             <if test="studyDate != null "> and study_date = #{studyDate}</if>
-            <if test="planTimeSpent != null "> and total_study_time = #{planTimeSpent}</if>
-            <if test="tomatoTimeSpent != null "> and tomato_count = #{tomatoTimeSpent}</if>
             <if test="totalTimeSpent != null "> and total_study_time = #{totalTimeSpent}</if>
+            <if test="tomatoTimeSpent != null "> and tomato_count = #{tomatoTimeSpent}</if>
             <if test="completedPlans != null "> and completed_plans = #{completedPlans}</if>
             <if test="subjectDistribution != null  and subjectDistribution != ''"> and subject_distribution = #{subjectDistribution}</if>
         </where>
@@ -45,9 +43,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="userId != null">user_id,</if>
             <if test="studyDate != null">study_date,</if>
-            <if test="planTimeSpent != null">total_study_time,</if>
-            <if test="tomatoTimeSpent != null">tomato_count,</if>
             <if test="totalTimeSpent != null">total_study_time,</if>
+            <if test="tomatoTimeSpent != null">tomato_count,</if>
             <if test="completedPlans != null">completed_plans,</if>
             <if test="subjectDistribution != null">subject_distribution,</if>
             <if test="createTime != null">create_time,</if>
@@ -56,9 +53,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="userId != null">#{userId},</if>
             <if test="studyDate != null">#{studyDate},</if>
-            <if test="planTimeSpent != null">#{planTimeSpent},</if>
-            <if test="tomatoTimeSpent != null">#{tomatoTimeSpent},</if>
             <if test="totalTimeSpent != null">#{totalTimeSpent},</if>
+            <if test="tomatoTimeSpent != null">#{tomatoTimeSpent},</if>
             <if test="completedPlans != null">#{completedPlans},</if>
             <if test="subjectDistribution != null">#{subjectDistribution},</if>
             <if test="createTime != null">#{createTime},</if>
@@ -71,9 +67,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <trim prefix="SET" suffixOverrides=",">
             <if test="userId != null">user_id = #{userId},</if>
             <if test="studyDate != null">study_date = #{studyDate},</if>
-            <if test="planTimeSpent != null">total_study_time = #{planTimeSpent},</if>
-            <if test="tomatoTimeSpent != null">tomato_count = #{tomatoTimeSpent},</if>
             <if test="totalTimeSpent != null">total_study_time = #{totalTimeSpent},</if>
+            <if test="tomatoTimeSpent != null">tomato_count = #{tomatoTimeSpent},</if>
             <if test="completedPlans != null">completed_plans = #{completedPlans},</if>
             <if test="subjectDistribution != null">subject_distribution = #{subjectDistribution},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
@@ -104,10 +99,77 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         limit 7
     </select>
     
+    <!-- 查询用户学习统计汇总（今日数据） -->
     <select id="selectStudySummaryByUserId" parameterType="Long" resultType="java.util.HashMap">
         select 
-            (select count(*) from study_plan where user_id = #{userId} and is_template = 0) as plan_count,
-            (select coalesce(sum(tomato_duration), 0) from tomato_record where user_id = #{userId} and status = 1 and start_time >= CURDATE() and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as study_hours,
-            (select count(*) from tomato_record where user_id = #{userId} and status = 1 and start_time >= CURDATE() and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as completed_tasks
+            (select count(*) from study_plan where user_id = #{userId} and is_template = 0 and date(create_time) = curdate()) as plan_count,
+            (select coalesce(sum(tomato_duration), 0) from tomato_record where user_id = #{userId} and status = 1 and start_time >= CURDATE() and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as study_minutes,
+            (select count(*) from tomato_record where user_id = #{userId} and status = 1 and start_time >= CURDATE() and start_time &lt; DATE_ADD(CURDATE(), INTERVAL 1 DAY)) as tomato_count,
+            (select count(*) from study_plan where user_id = #{userId} and status = '1' and date(completed_time) = curdate()) as completed_tasks
+    </select>
+    
+    <!-- 查询指定日期范围内的学习趋势数据 -->
+    <select id="selectStudyTrendByDateRange" resultType="java.util.HashMap">
+        select 
+            study_date as studyDate,
+            total_study_time as totalTimeSpent,
+            tomato_count as tomatoTimeSpent,
+            completed_plans as completedPlans
+        from study_statistics
+        where user_id = #{userId}
+        and study_date >= #{startDate}
+        and study_date &lt;= #{endDate}
+        order by study_date asc
+    </select>
+    
+    <!-- 查询学科学习时长分布（从番茄钟记录关联学习计划） -->
+    <select id="selectSubjectDistributionByUserId" resultType="java.util.HashMap">
+        select 
+            coalesce(sp.subject, '未分类') as subjectName,
+            coalesce(sum(tr.tomato_duration), 0) as totalMinutes
+        from tomato_record tr
+        left join study_plan sp on tr.plan_id = sp.plan_id
+        where tr.user_id = #{userId}
+        and tr.status = 1
+        <if test="startDate != null and startDate != ''">
+            and tr.start_time >= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and tr.start_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+        </if>
+        group by sp.subject
+        having totalMinutes > 0
+        order by totalMinutes desc
+    </select>
+    
+    <!-- 查询学习时间按小时分布（兼容 only_full_group_by） -->
+    <select id="selectTimeDistributionByUserId" resultType="java.util.HashMap">
+        select 
+            h as hourVal,
+            concat(h, '-', h + 2) as timeSlot,
+            coalesce(sum(tr.tomato_duration), 0) as totalMinutes
+        from tomato_record tr
+        inner join (
+            select distinct HOUR(start_time) as h
+            from tomato_record
+            where user_id = #{userId}
+            and status = 1
+            <if test="startDate != null and startDate != ''">
+                and start_time >= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                and start_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+            </if>
+        ) hours on HOUR(tr.start_time) = hours.h
+        where tr.user_id = #{userId}
+        and tr.status = 1
+        <if test="startDate != null and startDate != ''">
+            and tr.start_time >= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and tr.start_time &lt; DATE_ADD(#{endDate}, INTERVAL 1 DAY)
+        </if>
+        group by h
+        order by h asc
     </select>
 </mapper>

@@ -1,6 +1,7 @@
 package com.ruoyi.web.controller.study;
 
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import javax.servlet.http.HttpServletResponse;
 
 import com.ruoyi.common.utils.SecurityUtils;
@@ -44,7 +45,6 @@ public class StudyStatisticsController extends BaseController
     @GetMapping("/list")
     public TableDataInfo list(StudyStatistics studyStatistics)
     {
-        // 只能查看自己的统计数据
         studyStatistics.setUserId(SecurityUtils.getUserId());
         startPage();
         List<StudyStatistics> list = studyStatisticsService.selectStudyStatisticsList(studyStatistics);
@@ -73,7 +73,6 @@ public class StudyStatisticsController extends BaseController
     public AjaxResult getInfo(@PathVariable("statId") Long statId)
     {
         StudyStatistics statistics = studyStatisticsService.selectStudyStatisticsByStatId(statId);
-        // 权限检查：只能查看自己的统计数据
         if (!statistics.getUserId().equals(SecurityUtils.getUserId())) {
             return AjaxResult.error("无权限访问该统计数据");
         }
@@ -86,8 +85,7 @@ public class StudyStatisticsController extends BaseController
     @GetMapping("/achievements")
     public AjaxResult getAchievements()
     {
-        // 返回空列表，成就功能暂未实现
-        return AjaxResult.success(new java.util.ArrayList<>());
+        return AjaxResult.success(new ArrayList<>());
     }
 
     /**
@@ -110,7 +108,6 @@ public class StudyStatisticsController extends BaseController
     @PutMapping
     public AjaxResult edit(@RequestBody StudyStatistics studyStatistics)
     {
-        // 权限检查：只能修改自己的统计数据
         StudyStatistics oldStats = studyStatisticsService.selectStudyStatisticsByStatId(studyStatistics.getStatId());
         if (!oldStats.getUserId().equals(SecurityUtils.getUserId())) {
             return AjaxResult.error("无权限修改该统计数据");
@@ -123,10 +120,9 @@ public class StudyStatisticsController extends BaseController
      */
     @PreAuthorize("@ss.hasPermi('study:statistics:remove')")
     @Log(title = "学习统计数据", businessType = BusinessType.DELETE)
-	@DeleteMapping("/{statIds}")
+    @DeleteMapping("/{statIds}")
     public AjaxResult remove(@PathVariable Long[] statIds)
     {
-        // 权限检查：只能删除自己的统计数据
         for (Long statId : statIds) {
             StudyStatistics stats = studyStatisticsService.selectStudyStatisticsByStatId(statId);
             if (!stats.getUserId().equals(SecurityUtils.getUserId())) {
@@ -139,7 +135,6 @@ public class StudyStatisticsController extends BaseController
     /**
      * 查询用户最近7天学习统计数据
      */
-    @PreAuthorize("@ss.hasPermi('study:statistics:query')")
     @GetMapping("/recent")
     public AjaxResult getRecentStatistics()
     {
@@ -148,29 +143,17 @@ public class StudyStatisticsController extends BaseController
     }
 
     /**
-     * 查询用户学习统计汇总
+     * 查询用户学习统计汇总（今日数据） - 首页使用，无需权限
      */
     @GetMapping("/summary")
     public AjaxResult getStudySummary()
     {
         try {
             Long userId = SecurityUtils.getUserId();
-            System.out.println("=== 接收到首页统计请求 ===");
-            System.out.println("userId: " + userId);
-            
-            java.util.Map<String, Object> summary = studyStatisticsService.selectStudySummaryByUserId(userId);
-            
-            System.out.println("=== 首页统计数据查询结果 ===");
-            System.out.println("userId: " + userId);
-            System.out.println("plan_count: " + summary.get("plan_count"));
-            System.out.println("study_hours: " + summary.get("study_hours"));
-            System.out.println("completed_tasks: " + summary.get("completed_tasks"));
-            System.out.println("============================");
-            
+            Map<String, Object> summary = studyStatisticsService.selectStudySummaryByUserId(userId);
             return AjaxResult.success(summary);
         } catch (Exception e) {
-            System.out.println("=== 首页统计接口异常 ===");
-            e.printStackTrace();
+            logger.error("获取统计数据失败", e);
             return AjaxResult.error("获取统计数据失败: " + e.getMessage());
         }
     }
@@ -196,34 +179,50 @@ public class StudyStatisticsController extends BaseController
     }
 
     /**
-     * 获取学习趋势数据
+     * 获取学习趋势数据（真实数据）
      */
-    @PreAuthorize("@ss.hasPermi('study:statistics:query')")
     @GetMapping("/trend")
     public AjaxResult getStudyTrend(@RequestParam(defaultValue = "7") Integer days)
     {
-        List<StudyStatistics> trendData = studyStatisticsService.generateStudyTrendData(SecurityUtils.getUserId(), days);
+        List<Map<String, Object>> trendData = studyStatisticsService.getStudyTrendData(SecurityUtils.getUserId(), days);
         return AjaxResult.success(trendData);
     }
 
     /**
-     * 获取学习时间分布数据
+     * 获取学科分布数据（真实数据）
      */
-    @PreAuthorize("@ss.hasPermi('study:statistics:query')")
     @GetMapping("/distribution")
-    public AjaxResult getTimeDistribution(@RequestParam(required = false) String date)
+    public AjaxResult getSubjectDistribution(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate)
     {
-        String distributionData = studyStatisticsService.generateTimeDistributionData(SecurityUtils.getUserId(), date);
+        List<Map<String, Object>> distributionData = studyStatisticsService.getSubjectDistributionData(
+            SecurityUtils.getUserId(), startDate, endDate);
         return AjaxResult.success(distributionData);
+    }
+
+    /**
+     * 获取学习时间分布数据（按小时，真实数据）
+     */
+    @GetMapping("/time-distribution")
+    public AjaxResult getTimeDistribution(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate)
+    {
+        List<Map<String, Object>> timeData = studyStatisticsService.getTimeDistributionData(
+            SecurityUtils.getUserId(), startDate, endDate);
+        return AjaxResult.success(timeData);
     }
 
     /**
      * 获取学习效率评分
      */
-    @PreAuthorize("@ss.hasPermi('study:statistics:query')")
     @GetMapping("/productivity")
-    public AjaxResult getProductivityScore(@RequestParam String studyDate)
+    public AjaxResult getProductivityScore(@RequestParam(required = false) String studyDate)
     {
+        if (studyDate == null || studyDate.isEmpty()) {
+            studyDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        }
         double score = studyStatisticsService.calculateProductivityScore(SecurityUtils.getUserId(), studyDate);
         return AjaxResult.success(score);
     }

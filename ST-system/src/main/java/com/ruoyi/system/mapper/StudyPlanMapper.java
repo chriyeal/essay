@@ -82,4 +82,12 @@ public interface StudyPlanMapper
      * @return 统计结果
      */
     public int countCompletedPlansByUserId(Long userId);
+
+    /**
+     * 批量更新超期未完成的学习计划状态为未完成
+     * 
+     * @param userId 用户ID
+     * @return 更新的记录数
+     */
+    public int updateExpiredPlans(Long userId);
 }

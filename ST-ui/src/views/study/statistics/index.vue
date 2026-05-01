@@ -41,10 +41,6 @@
           <div class="metric-content">
             <div class="metric-value">{{ metric.value }}</div>
             <div class="metric-label">{{ metric.label }}</div>
-            <div class="metric-change" :class="metric.change > 0 ? 'positive' : 'negative'">
-              <i :class="metric.change > 0 ? 'el-icon-top' : 'el-icon-bottom'"></i>
-              {{ Math.abs(metric.change) }}%
-            </div>
           </div>
         </div>
       </el-col>
@@ -57,7 +53,7 @@
           <div slot="header" class="clearfix">
             <span class="card-title">学习趋势分析</span>
             <div style="float: right;">
-              <el-radio-group v-model="trendType" size="small">
+              <el-radio-group v-model="trendType" size="small" @change="updateTrendChart">
                 <el-radio-button label="studyTime">学习时长</el-radio-button>
                 <el-radio-button label="tomatoCount">番茄钟数</el-radio-button>
                 <el-radio-button label="completedTasks">完成任务</el-radio-button>
@@ -153,58 +149,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="subjects" label="涉及学科">
-          <template slot-scope="scope">
-            <el-tag
-              v-for="subject in scope.row.subjects"
-              :key="subject"
-              size="mini"
-              style="margin-right: 5px;"
-            >
-              {{ subject }}
-            </el-tag>
-          </template>
-        </el-table-column>
       </el-table>
-      
-      <pagination
-        v-show="total > 0"
-        :total="total"
-        :page.sync="queryParams.pageNum"
-        :limit.sync="queryParams.pageSize"
-        @pagination="getDetailData"
-      />
-    </el-card>
-
-    <!-- 成就系统 -->
-    <el-card class="achievements-card" style="margin-top: 20px;">
-      <div slot="header" class="clearfix">
-        <span class="card-title">学习成就</span>
-        <span style="float: right; color: #999;">已获得 {{ achievements.length }} 个成就</span>
-      </div>
-      
-      <div class="achievements-grid">
-        <div
-          v-for="achievement in achievements"
-          :key="achievement.id"
-          class="achievement-item"
-          :class="{ unlocked: achievement.unlocked }"
-        >
-          <div class="achievement-icon">
-            <i :class="achievement.icon"></i>
-          </div>
-          <div class="achievement-content">
-            <h4>{{ achievement.name }}</h4>
-            <p>{{ achievement.description }}</p>
-            <div v-if="achievement.unlocked" class="unlocked-date">
-              获得于 {{ achievement.unlockDate }}
-            </div>
-            <div v-else class="progress-info">
-              进度: {{ achievement.progress }}/{{ achievement.target }}
-            </div>
-          </div>
-        </div>
-      </div>
     </el-card>
   </div>
 </template>
@@ -221,16 +166,18 @@ export default {
       // 时间范围
       timeRange: '30day',
       dateRange: [],
+      startDate: '',
+      endDate: '',
       
       // 趋势类型
       trendType: 'studyTime',
       
       // 核心指标
       metrics: [
-        { key: 'totalStudyTime', label: '总学习时长', value: '0小时', icon: 'el-icon-time', color: '#409EFF', change: 12.5 },
-        { key: 'tomatoCount', label: '番茄钟总数', value: '0个', icon: 'el-icon-timer', color: '#67C23A', change: 8.3 },
-        { key: 'completedTasks', label: '完成任务数', value: '0个', icon: 'el-icon-check', color: '#E6A23C', change: -2.1 },
-        { key: 'efficiencyScore', label: '平均效率', value: '0分', icon: 'el-icon-data-analysis', color: '#F56C6C', change: 5.7 }
+        { key: 'totalStudyTime', label: '今日学习时长', value: '0分钟', icon: 'el-icon-time', color: '#409EFF' },
+        { key: 'tomatoCount', label: '今日番茄钟', value: '0个', icon: 'el-icon-timer', color: '#67C23A' },
+        { key: 'completedTasks', label: '今日完成任务', value: '0个', icon: 'el-icon-check', color: '#E6A23C' },
+        { key: 'efficiencyScore', label: '效率评分', value: '0分', icon: 'el-icon-data-analysis', color: '#F56C6C' }
       ],
       
       // 效率指标
@@ -241,35 +188,38 @@ export default {
         { key: 'productivity', label: '产出比', value: 0 }
       ],
       
-      // 成就数据
-      achievements: [],
-      
       // 详细数据
       detailData: [],
       tableLoading: false,
-      total: 0,
-      queryParams: {
-        pageNum: 1,
-        pageSize: 10
-      },
       
       // 图表实例
       trendChart: null,
       subjectChart: null,
       efficiencyChart: null,
-      timeChart: null
+      timeChart: null,
+      
+      // 趋势原始数据
+      trendData: []
     };
   },
   mounted() {
+    this.initDateRange();
     this.initCharts();
     this.loadData();
-    this.getDetailData();
-    this.loadAchievements();
   },
   beforeDestroy() {
     this.disposeCharts();
   },
   methods: {
+    /** 初始化日期范围 */
+    initDateRange() {
+      const now = new Date();
+      const days = 30;
+      const start = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+      this.startDate = this.formatDateStr(start);
+      this.endDate = this.formatDateStr(now);
+    },
+    
     /** 初始化图表 */
     initCharts() {
       this.$nextTick(() => {
@@ -284,48 +234,15 @@ export default {
     initTrendChart() {
       this.trendChart = echarts.init(this.$refs.trendChart);
       const option = {
-        tooltip: {
-          trigger: 'axis'
-        },
-        legend: {
-          data: ['学习时长', '番茄钟数', '完成任务']
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-        },
-        yAxis: {
-          type: 'value'
-        },
+        tooltip: { trigger: 'axis' },
+        legend: { data: ['学习时长', '番茄钟数', '完成任务'] },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: [] },
+        yAxis: { type: 'value' },
         series: [
-          {
-            name: '学习时长',
-            type: 'line',
-            stack: '总量',
-            data: [0, 0, 0, 0, 0, 0, 0],
-            smooth: true
-          },
-          {
-            name: '番茄钟数',
-            type: 'line',
-            stack: '总量',
-            data: [0, 0, 0, 0, 0, 0, 0],
-            smooth: true
-          },
-          {
-            name: '完成任务',
-            type: 'line',
-            stack: '总量',
-            data: [0, 0, 0, 0, 0, 0, 0],
-            smooth: true
-          }
+          { name: '学习时长', type: 'line', data: [], smooth: true },
+          { name: '番茄钟数', type: 'line', data: [], smooth: true },
+          { name: '完成任务', type: 'line', data: [], smooth: true }
         ]
       };
       this.trendChart.setOption(option);
@@ -335,30 +252,17 @@ export default {
     initSubjectChart() {
       this.subjectChart = echarts.init(this.$refs.subjectChart);
       const option = {
-        tooltip: {
-          trigger: 'item'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 'left'
-        },
-        series: [
-          {
-            name: '学科分布',
-            type: 'pie',
-            radius: '50%',
-            data: [
-              { value: 0, name: '暂无数据' }
-            ],
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            }
+        tooltip: { trigger: 'item', formatter: '{b}: {c}分钟 ({d}%)' },
+        legend: { orient: 'vertical', left: 'left' },
+        series: [{
+          name: '学科分布',
+          type: 'pie',
+          radius: '50%',
+          data: [{ value: 0, name: '暂无数据' }],
+          emphasis: {
+            itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' }
           }
-        ]
+        }]
       };
       this.subjectChart.setOption(option);
     },
@@ -379,12 +283,7 @@ export default {
         series: [{
           name: '效率指标',
           type: 'radar',
-          data: [
-            {
-              value: [0, 0, 0, 0, 0],
-              name: '当前水平'
-            }
-          ]
+          data: [{ value: [0, 0, 0, 0, 0], name: '当前水平' }]
         }]
       };
       this.efficiencyChart.setOption(option);
@@ -394,21 +293,11 @@ export default {
     initTimeChart() {
       this.timeChart = echarts.init(this.$refs.timeChart);
       const option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
-          }
-        },
-        xAxis: {
-          type: 'category',
-          data: ['6-8', '8-10', '10-12', '12-14', '14-16', '16-18', '18-20', '20-22']
-        },
-        yAxis: {
-          type: 'value'
-        },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        xAxis: { type: 'category', data: [] },
+        yAxis: { type: 'value' },
         series: [{
-          data: [0, 0, 0, 0, 0, 0, 0, 0],
+          data: [],
           type: 'bar',
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -433,107 +322,209 @@ export default {
     /** 加载数据 */
     loadData() {
       this.loadMetrics();
-      this.loadChartsData();
+      this.loadTrendData();
+      this.loadSubjectDistribution();
+      this.loadTimeDistribution();
+      this.loadEfficiencyData();
+      this.loadDetailData();
     },
     
-    /** 加载核心指标 */
+    /** 加载核心指标（今日数据） */
     loadMetrics() {
-      // 先从番茄钟统计获取番茄钟数据
-      getTomatoStatistics().then(tomatoRes => {
-        const tomatoData = tomatoRes.data || {};
-        console.log('番茄钟统计数据:', tomatoData);
+      getStudyStatistics().then(response => {
+        const data = response.data || {};
+        const studyMinutes = data.study_minutes || 0;
+        const tomatoCount = data.tomato_count || 0;
+        const completedTasks = data.completed_tasks || 0;
         
-        // 然后从学习统计获取其他数据
-        getStudyStatistics().then(response => {
-          const data = response.data || {};
-          console.log('学习统计数据:', data);
-          // plan_count 是计划数量，study_hours 是今日学习分钟数，completed_tasks 是今日完成的番茄钟数
-          this.metrics[0].value = this.formatTime(data.study_hours || 0);
-          // 番茄钟数量从番茄钟统计获取
-          this.metrics[1].value = (tomatoData.totalCount || 0) + '个';
-          // 完成任务数
-          this.metrics[2].value = (data.completed_tasks || 0) + '个';
-          // 平均效率
-          this.metrics[3].value = (data.average_efficiency || 0) + '分';
-        }).catch((err) => {
-          console.error('学习统计接口错误:', err);
-          // 使用番茄钟数据
-          this.metrics[0].value = '0分钟';
-          this.metrics[1].value = (tomatoData.totalCount || 0) + '个';
-          this.metrics[2].value = '0个';
-          this.metrics[3].value = '0分';
-        });
-      }).catch((err) => {
-        console.error('番茄钟统计接口错误:', err);
-        // 新用户没有数据，显示默认值
-        this.metrics = [
-          { key: 'totalStudyTime', label: '总学习时长', value: '0分钟', icon: 'el-icon-time', color: '#409EFF', change: 0 },
-          { key: 'tomatoCount', label: '番茄钟总数', value: '0个', icon: 'el-icon-timer', color: '#67C23A', change: 0 },
-          { key: 'completedTasks', label: '完成任务数', value: '0个', icon: 'el-icon-check', color: '#E6A23C', change: 0 },
-          { key: 'efficiencyScore', label: '平均效率', value: '0分', icon: 'el-icon-data-analysis', color: '#F56C6C', change: 0 }
-        ];
-      });
-    },
-    
-    /** 加载图表数据 */
-    loadChartsData() {
-      // 这里应该调用相应的API获取图表数据
-      // 暂时使用初始化时的模拟数据
-    },
-    
-    /** 获取详细数据 */
-    getDetailData() {
-      this.tableLoading = true;
-      // 新用户没有数据，显示空列表
-      this.detailData = [];
-      this.total = 0;
-      this.tableLoading = false;
-    },
-    
-    /** 加载成就数据 */
-    loadAchievements() {
-      getAchievements().then(response => {
-        this.achievements = response.data || [];
+        this.metrics[0].value = this.formatTime(studyMinutes);
+        this.metrics[1].value = tomatoCount + '个';
+        this.metrics[2].value = completedTasks + '个';
+        this.metrics[3].value = this.calcEfficiencyScore(studyMinutes, completedTasks) + '分';
       }).catch(() => {
-        // 新用户没有成就
-        this.achievements = [];
+        this.metrics[0].value = '0分钟';
+        this.metrics[1].value = '0个';
+        this.metrics[2].value = '0个';
+        this.metrics[3].value = '0分';
       });
+    },
+    
+    /** 计算效率评分 */
+    calcEfficiencyScore(minutes, tasks) {
+      const score = tasks * 2 + minutes / 60;
+      return Math.min(10, Math.round(score * 10) / 10);
+    },
+    
+    /** 加载趋势数据 */
+    loadTrendData() {
+      const days = this.getDaysFromTimeRange();
+      getStudyTrends(days).then(response => {
+        this.trendData = response.data || [];
+        this.updateTrendChart();
+      }).catch(() => {
+        this.trendData = [];
+        this.updateTrendChart();
+      });
+    },
+    
+    /** 更新趋势图 */
+    updateTrendChart() {
+      if (!this.trendChart || !this.trendData.length) return;
+      
+      const dates = this.trendData.map(d => d.date);
+      const studyTimes = this.trendData.map(d => d.studyTime || 0);
+      const tomatoCounts = this.trendData.map(d => d.tomatoCount || 0);
+      const completedTasks = this.trendData.map(d => d.completedTasks || 0);
+      
+      let activeData, activeName;
+      switch (this.trendType) {
+        case 'tomatoCount':
+          activeData = tomatoCounts; activeName = '番茄钟数'; break;
+        case 'completedTasks':
+          activeData = completedTasks; activeName = '完成任务'; break;
+        default:
+          activeData = studyTimes; activeName = '学习时长';
+      }
+      
+      this.trendChart.setOption({
+        xAxis: { data: dates },
+        series: [
+          { name: '学习时长', data: studyTimes, type: 'line' },
+          { name: '番茄钟数', data: tomatoCounts, type: 'line' },
+          { name: '完成任务', data: completedTasks, type: 'line' }
+        ]
+      });
+    },
+    
+    /** 加载学科分布数据 */
+    loadSubjectDistribution() {
+      getSubjectDistribution(this.startDate, this.endDate).then(response => {
+        const data = response.data || [];
+        if (this.subjectChart) {
+          if (data.length === 0) {
+            this.subjectChart.setOption({
+              series: [{ data: [{ value: 0, name: '暂无数据' }] }]
+            });
+          } else {
+            const pieData = data.map(item => ({
+              value: item.totalMinutes || 0,
+              name: item.subjectName || '未分类'
+            }));
+            this.subjectChart.setOption({
+              series: [{ data: pieData }]
+            });
+          }
+        }
+      }).catch(() => {
+        if (this.subjectChart) {
+          this.subjectChart.setOption({
+            series: [{ data: [{ value: 0, name: '暂无数据' }] }]
+          });
+        }
+      });
+    },
+    
+    /** 加载时间分布数据 */
+    loadTimeDistribution() {
+      getTimeDistribution(this.startDate, this.endDate).then(response => {
+        const data = response.data || [];
+        if (this.timeChart) {
+          const slots = data.map(d => d.timeSlot || '');
+          const minutes = data.map(d => d.totalMinutes || 0);
+          this.timeChart.setOption({
+            xAxis: { data: slots },
+            series: [{ data: minutes }]
+          });
+        }
+      }).catch(() => {
+        // 保持空数据
+      });
+    },
+    
+    /** 加载效率数据 */
+    loadEfficiencyData() {
+      const today = this.formatDateStr(new Date());
+      getEfficiencyAnalysis(today).then(response => {
+        const score = response.data || 0;
+        // 基于效率评分计算各项指标
+        const focusScore = Math.min(100, Math.round(score * 10));
+        const completionScore = Math.min(100, Math.round(score * 10));
+        const consistencyScore = Math.min(100, Math.round(score * 8));
+        const productivityScore = Math.min(100, Math.round(score * 12));
+        const stabilityScore = Math.min(100, Math.round(score * 9));
+        
+        this.efficiencyMetrics = [
+          { key: 'focus', label: '专注度', value: focusScore },
+          { key: 'completion', label: '完成率', value: completionScore },
+          { key: 'consistency', label: '连续性', value: consistencyScore },
+          { key: 'productivity', label: '产出比', value: productivityScore }
+        ];
+        
+        if (this.efficiencyChart) {
+          this.efficiencyChart.setOption({
+            series: [{
+              data: [{ value: [focusScore, completionScore, consistencyScore, productivityScore, stabilityScore], name: '当前水平' }]
+            }]
+          });
+        }
+      }).catch(() => {
+        // 保持默认值
+      });
+    },
+    
+    /** 加载详细数据表格 */
+    loadDetailData() {
+      this.tableLoading = true;
+      getStudyTrends(this.getDaysFromTimeRange()).then(response => {
+        const data = response.data || [];
+        this.detailData = data.map(item => ({
+          date: item.date,
+          studyTime: item.studyTime || 0,
+          tomatoCount: item.tomatoCount || 0,
+          completedTasks: item.completedTasks || 0,
+          efficiencyScore: this.calcEfficiencyScore(item.studyTime || 0, item.completedTasks || 0)
+        })).reverse();
+        this.tableLoading = false;
+      }).catch(() => {
+        this.detailData = [];
+        this.tableLoading = false;
+      });
+    },
+    
+    /** 获取天数 */
+    getDaysFromTimeRange() {
+      switch (this.timeRange) {
+        case '7day': return 7;
+        case '30day': return 30;
+        case '90day': return 90;
+        case 'year': return 365;
+        default: return 30;
+      }
     },
     
     /** 时间范围变化 */
     handleTimeRangeChange() {
-      // 根据选择的时间范围更新dateRange
       const now = new Date();
-      let startDate;
-      
-      switch (this.timeRange) {
-        case '7day':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '30day':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case '90day':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
-      }
-      
-      this.dateRange = [this.formatDate(startDate), this.formatDate(now)];
+      let days = this.getDaysFromTimeRange();
+      const start = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+      this.startDate = this.formatDateStr(start);
+      this.endDate = this.formatDateStr(now);
+      this.dateRange = [this.startDate, this.endDate];
       this.refreshData();
     },
     
     /** 日期范围变化 */
     handleDateRangeChange() {
+      if (this.dateRange && this.dateRange.length === 2) {
+        this.startDate = this.dateRange[0];
+        this.endDate = this.dateRange[1];
+      }
       this.refreshData();
     },
     
     /** 刷新数据 */
     refreshData() {
       this.loadData();
-      this.getDetailData();
     },
     
     /** 导出数据 */
@@ -542,7 +533,7 @@ export default {
         const blob = new Blob([response]);
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `学习数据_${this.formatDate(new Date())}.xlsx`;
+        link.download = `学习数据_${this.formatDateStr(new Date())}.xlsx`;
         link.click();
         URL.revokeObjectURL(link.href);
         this.$message.success('数据导出成功');
@@ -552,14 +543,15 @@ export default {
     },
     
     // 工具方法
-    formatDate(date) {
-      return date.toISOString().split('T')[0];
+    formatDateStr(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
     },
     
     formatTime(minutes) {
-      if (minutes < 60) {
-        return `${minutes}分钟`;
-      }
+      if (minutes < 60) return `${minutes}分钟`;
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
       return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
@@ -658,26 +650,12 @@ export default {
         .metric-label {
           font-size: 1rem;
           color: #666;
-          margin-bottom: 10px;
-        }
-        
-        .metric-change {
-          font-size: 0.9rem;
-          font-weight: 500;
-          
-          &.positive {
-            color: #67C23A;
-          }
-          
-          &.negative {
-            color: #F56C6C;
-          }
         }
       }
     }
   }
   
-  .chart-card, .efficiency-card, .time-distribution-card, .data-table-card, .achievements-card {
+  .chart-card, .efficiency-card, .time-distribution-card, .data-table-card {
     margin-bottom: 20px;
     
     .card-title {
@@ -724,78 +702,6 @@ export default {
     }
   }
   
-  .achievements-card {
-    .achievements-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 20px;
-      
-      .achievement-item {
-        display: flex;
-        padding: 20px;
-        border-radius: 12px;
-        border: 2px dashed #ddd;
-        transition: all 0.3s ease;
-        
-        &.unlocked {
-          border-color: #409EFF;
-          background: rgba(64, 158, 255, 0.05);
-        }
-        
-        .achievement-icon {
-          font-size: 2rem;
-          color: #ddd;
-          margin-right: 15px;
-          min-width: 50px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          
-          .unlocked & {
-            color: #409EFF;
-          }
-        }
-        
-        .achievement-content {
-          flex: 1;
-          
-          h4 {
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-            color: #999;
-            
-            .unlocked & {
-              color: #333;
-            }
-          }
-          
-          p {
-            font-size: 0.9rem;
-            color: #999;
-            margin-bottom: 10px;
-            line-height: 1.4;
-            
-            .unlocked & {
-              color: #666;
-            }
-          }
-          
-          .unlocked-date {
-            font-size: 0.8rem;
-            color: #409EFF;
-            font-weight: 500;
-          }
-          
-          .progress-info {
-            font-size: 0.8rem;
-            color: #999;
-          }
-        }
-      }
-    }
-  }
-  
-  // 响应式设计
   @media (max-width: 768px) {
     .filter-bar {
       flex-direction: column;
@@ -813,10 +719,6 @@ export default {
       .metric-value {
         font-size: 1.4rem;
       }
-    }
-    
-    .achievements-grid {
-      grid-template-columns: 1fr !important;
     }
   }
 }

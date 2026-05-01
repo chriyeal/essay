@@ -21,6 +21,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="learningGoals"    column="learning_goals"    />
         <result property="estimatedHours"    column="estimated_hours"    />
         <result property="actualHours"    column="actual_hours"    />
+        <result property="totalDays"    column="total_days"    />
         <result property="progress"    column="progress"    />
         <result property="totalTasks"    column="total_tasks"    />
         <result property="completedTasks"    column="completed_tasks"    />
@@ -33,7 +34,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectStudyPlanVo">
-        select plan_id, user_id, plan_name, plan_type, parent_plan_id, start_date, end_date, deadline, priority, difficulty, tags, subject, description, learning_goals, estimated_hours, actual_hours, progress, total_tasks, completed_tasks, status, is_template, is_completed, completed_time, create_time, update_time from study_plan
+        select plan_id, user_id, plan_name, plan_type, parent_plan_id, start_date, end_date, deadline, priority, difficulty, tags, subject, description, learning_goals, estimated_hours, actual_hours, total_days, progress, total_tasks, completed_tasks, status, is_template, is_completed, completed_time, create_time, update_time from study_plan
     </sql>
 
     <select id="selectStudyPlanList" parameterType="StudyPlan" resultMap="StudyPlanResult">
@@ -87,6 +88,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="learningGoals != null">learning_goals,</if>
             <if test="estimatedHours != null">estimated_hours,</if>
             <if test="actualHours != null">actual_hours,</if>
+            <if test="totalDays != null">total_days,</if>
             <if test="progress != null">progress,</if>
             <if test="totalTasks != null">total_tasks,</if>
             <if test="completedTasks != null">completed_tasks,</if>
@@ -113,6 +115,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="learningGoals != null">#{learningGoals},</if>
             <if test="estimatedHours != null">#{estimatedHours},</if>
             <if test="actualHours != null">#{actualHours},</if>
+            <if test="totalDays != null">#{totalDays},</if>
             <if test="progress != null">#{progress},</if>
             <if test="totalTasks != null">#{totalTasks},</if>
             <if test="completedTasks != null">#{completedTasks},</if>
@@ -143,6 +146,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="learningGoals != null">learning_goals = #{learningGoals},</if>
             <if test="estimatedHours != null">estimated_hours = #{estimatedHours},</if>
             <if test="actualHours != null">actual_hours = #{actualHours},</if>
+            <if test="totalDays != null">total_days = #{totalDays},</if>
             <if test="progress != null">progress = #{progress},</if>
             <if test="totalTasks != null">total_tasks = #{totalTasks},</if>
             <if test="completedTasks != null">completed_tasks = #{completedTasks},</if>
@@ -183,4 +187,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         select count(*) from study_plan 
         where user_id = #{userId} and is_completed = 1
     </select>
+
+    <!-- 批量更新超期未完成的学习计划状态为未完成 -->
+    <update id="updateExpiredPlans" parameterType="Long">
+        update study_plan
+        set status = '3', is_completed = 0, update_time = NOW()
+        where user_id = #{userId}
+        and status = '0'
+        and is_template = 0
+        and end_date is not null
+        and end_date &lt; CURDATE()
+    </update>
 </mapper>

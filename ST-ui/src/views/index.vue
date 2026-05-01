@@ -16,18 +16,23 @@
         <div class="welcome-stats">
           <div class="stat-item">
             <div class="stat-number">{{ studyStats.planCount || 0 }}</div>
-            <div class="stat-label">学习计划</div>
-            <div class="stat-label-en">Learning Plans</div>
+            <div class="stat-label">今日学习计划</div>
+            <div class="stat-label-en">Today's Plans</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">{{ studyStats.studyHours || 0 }}</div>
-            <div class="stat-label">学习时长(小时)</div>
-            <div class="stat-label-en">Study Hours</div>
+            <div class="stat-number">{{ formatStudyHours(studyStats.studyMinutes) }}</div>
+            <div class="stat-label">今日学习时长</div>
+            <div class="stat-label-en">Study Duration</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">{{ studyStats.tomatoCount || 0 }}</div>
+            <div class="stat-label">今日番茄钟</div>
+            <div class="stat-label-en">Pomodoros</div>
           </div>
           <div class="stat-item">
             <div class="stat-number">{{ studyStats.completedTasks || 0 }}</div>
-            <div class="stat-label">完成任务</div>
-            <div class="stat-label-en">Completed Tasks</div>
+            <div class="stat-label">今日完成任务</div>
+            <div class="stat-label-en">Completed</div>
           </div>
         </div>
       </div>
@@ -81,7 +86,8 @@ export default {
       // 学习统计数据
       studyStats: {
         planCount: 0,
-        studyHours: 0,
+        studyMinutes: 0,
+        tomatoCount: 0,
         completedTasks: 0
       },
       // 定时刷新器
@@ -183,19 +189,27 @@ export default {
         const stats = response.data || {};
         this.studyStats = {
           planCount: stats.plan_count || 0,
-          studyHours: Math.floor((stats.study_hours || 0) / 60), // 分钟转换为小时
+          studyMinutes: stats.study_minutes || 0,
+          tomatoCount: stats.tomato_count || 0,
           completedTasks: stats.completed_tasks || 0
         };
-        console.log('首页统计数据:', this.studyStats);
       }).catch(error => {
         console.error('获取首页统计数据失败:', error);
-        // 如果获取失败，显示 0
         this.studyStats = {
           planCount: 0,
-          studyHours: 0,
+          studyMinutes: 0,
+          tomatoCount: 0,
           completedTasks: 0
         }
       })
+    },
+    // 格式化学习时长
+    formatStudyHours(minutes) {
+      if (!minutes || minutes === 0) return '0分钟';
+      if (minutes < 60) return minutes + '分钟';
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? hours + '小时' + mins + '分' : hours + '小时';
     },
     // 处理快捷入口点击
     handleQuickAction(path) {

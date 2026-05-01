@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.system.mapper.StudyPlanMapper;
@@ -20,6 +23,8 @@ import com.ruoyi.system.service.IStudyPlanService;
 @Service
 public class StudyPlanServiceImpl implements IStudyPlanService
 {
+    private static final Logger log = LoggerFactory.getLogger(StudyPlanServiceImpl.class);
+
     @Autowired
     private StudyPlanMapper studyPlanMapper;
 
@@ -44,6 +49,20 @@ public class StudyPlanServiceImpl implements IStudyPlanService
     @Override
     public List<StudyPlan> selectStudyPlanList(StudyPlan studyPlan)
     {
+        // 查询前自动更新当前用户的超期计划状态
+        if (studyPlan.getUserId() != null) {
+            studyPlanMapper.updateExpiredPlans(studyPlan.getUserId());
+        } else {
+            // 如果查询条件中没有userId，尝试获取当前登录用户ID
+            try {
+                Long currentUserId = SecurityUtils.getUserId();
+                if (currentUserId != null) {
+                    studyPlanMapper.updateExpiredPlans(currentUserId);
+                }
+            } catch (Exception e) {
+                // 忽略获取用户ID失败的异常
+            }
+        }
         return studyPlanMapper.selectStudyPlanList(studyPlan);
     }
 
@@ -329,6 +348,19 @@ public class StudyPlanServiceImpl implements IStudyPlanService
     public int countCompletedPlansByUserId(Long userId)
     {
         return studyPlanMapper.countCompletedPlansByUserId(userId);
+    }
+
+    /**
+     * 更新超期未完成的学习计划状态
+     */
+    @Override
+    public int updateExpiredPlans(Long userId)
+    {
+        int count = studyPlanMapper.updateExpiredPlans(userId);
+        if (count > 0) {
+            log.info("用户 {} 有 {} 个学习计划已超期，已自动标记为未完成", userId, count);
+        }
+        return count;
     }
 
     /**
